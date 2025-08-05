@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3>🏆 {{ team.name }} - Team Details</h3>
+            {% if team.description %}
+                <p class="text-muted">{{ team.description }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <a href="{% url 'team_leaderboard' %}" class="btn btn-outline-secondary">← Back to Leaderboard</a>
+        </div>
+    </div>
+    
+    <!-- Team Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h4>{{ team_points }}</h4>
+                    <small>Total Points</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h4>{{ total_winners }}</h4>
+                    <small>Winners (Top 3)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h4>{{ total_participations }}</h4>
+                    <small>Participations</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-white">
+                <div class="card-body">
+                    <h4>{{ programs_performance|length }}</h4>
+                    <small>Programs Joined</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Winners Section -->
+    {% if winners %}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">🏆 Winners & Top Performers</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Contestant</th>
+                            <th>Chest No</th>
+                            <th>Marks</th>
+                            <th>Grade</th>
+                            <th>Rank</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in winners %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ p.program.name }}</span></td>
+                            <td><strong>{{ p.contestant.name }}</strong></td>
+                            <td>{{ p.contestant.chest_no }}</td>
+                            <td>
+                                <span class="badge {% if p.marks >= 80 %}bg-success{% elif p.marks >= 60 %}bg-info{% else %}bg-warning{% endif %}">
+                                    {{ p.marks }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% else %}bg-warning{% endif %}">
+                                    {{ p.grade }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if p.rank == 1 %}🥇 1st
+                                {% elif p.rank == 2 %}🥈 2nd
+                                {% elif p.rank == 3 %}🥉 3rd
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">
+                                    {% if p.rank == 1 and p.grade == 'A' %}12
+                                    {% elif p.rank == 1 and p.grade == 'B' %}9
+                                    {% elif p.rank == 1 and p.grade == 'C' %}7
+                                    {% elif p.rank == 2 and p.grade == 'A' %}9
+                                    {% elif p.rank == 2 and p.grade == 'B' %}6
+                                    {% elif p.rank == 2 and p.grade == 'C' %}4
+                                    {% elif p.rank == 3 and p.grade == 'A' %}7
+                                    {% elif p.rank == 3 and p.grade == 'B' %}4
+                                    {% elif p.rank == 3 and p.grade == 'C' %}2
+                                    {% else %}0
+                                    {% endif %} pts
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Program-wise Performance -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📊 Program-wise Performance</h5>
+        </div>
+        <div class="card-body">
+            {% for program, participants in programs_performance.items %}
+            <div class="mb-3">
+                <h6 class="border-bottom pb-2">{{ program }}</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Contestant</th>
+                                <th>Chest No</th>
+                                <th>Marks</th>
+                                <th>Grade</th>
+                                <th>Rank</th>
+                                <th>Points</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in participants %}
+                            <tr {% if p.rank <= 3 %}class="table-warning"{% endif %}>
+                                <td>{{ p.contestant.name }}</td>
+                                <td>{{ p.contestant.chest_no }}</td>
+                                <td>{{ p.marks }}</td>
+                                <td>
+                                    {% if p.grade %}
+                                        <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% else %}bg-warning{% endif %}">
+                                            {{ p.grade }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if p.rank <= 3 %}
+                                        {% if p.rank == 1 %}🥇{% elif p.rank == 2 %}🥈{% elif p.rank == 3 %}🥉{% endif %} {{ p.rank }}
+                                    {% else %}
+                                        {{ p.rank }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if p.points_awarded %}
+                                        <span class="badge bg-success">
+                                            {% if p.rank == 1 and p.grade == 'A' %}12
+                                            {% elif p.rank == 1 and p.grade == 'B' %}9
+                                            {% elif p.rank == 1 and p.grade == 'C' %}7
+                                            {% elif p.rank == 2 and p.grade == 'A' %}9
+                                            {% elif p.rank == 2 and p.grade == 'B' %}6
+                                            {% elif p.rank == 2 and p.grade == 'C' %}4
+                                            {% elif p.rank == 3 and p.grade == 'A' %}7
+                                            {% elif p.rank == 3 and p.grade == 'B' %}4
+                                            {% elif p.rank == 3 and p.grade == 'C' %}2
+                                            {% elif p.grade == 'A' %}6
+                                            {% elif p.grade == 'B' %}3
+                                            {% elif p.grade == 'C' %}1
+                                            {% else %}0
+                                            {% endif %} pts
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">Not awarded</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if p.points_awarded %}
+                                        <span class="text-success">✅ Awarded</span>
+                                    {% else %}
+                                        <span class="text-warning">⏳ Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                No participation data found for this team.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- All Participations Summary -->
+    {% if others %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">📋 Other Participations</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Contestant</th>
+                            <th>Marks</th>
+                            <th>Grade</th>
+                            <th>Rank</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in others %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ p.program.name }}</span></td>
+                            <td>{{ p.contestant.name }}</td>
+                            <td>{{ p.marks }}</td>
+                            <td>
+                                {% if p.grade %}
+                                    <span class="badge {% if p.grade == 'A' %}bg-success{% elif p.grade == 'B' %}bg-info{% else %}bg-warning{% endif %}">
+                                        {{ p.grade }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ p.rank }}</td>
+                            <td>
+                                {% if p.points_awarded and p.grade %}
+                                    <span class="badge bg-secondary">
+                                        {% if p.grade == 'A' %}6{% elif p.grade == 'B' %}3{% elif p.grade == 'C' %}1{% endif %} pts
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">0 pts</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

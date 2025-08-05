@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-4">📋 Assigned Programs</h3>
+
+    <!-- Filter Form -->
+    <form method="get" id="filter-form" class="row g-3">
+        <div class="col-md-6 col-lg-4">
+            <label for="id_team" class="form-label">Team</label>
+            <select name="team" id="id_team" class="form-select">
+                <option value="">All Teams</option>
+                {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == selected_team %}selected{% endif %}>{{ team.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <label for="id_category" class="form-label">Category</label>
+            <select name="category" id="id_category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if cat.id == selected_category %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    <!-- Table -->
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Contestant</th>
+                    <th>Team</th>
+                    <th>Category</th>
+                    <th>Program</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for participation in participations %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ participation.contestant.name }}</td>
+                        <td>{{ participation.contestant.team.name }}</td>
+                        <td>{{ participation.contestant.category.name }}</td>
+                        <td>{{ participation.program.name }}</td>
+                        <td>{{ participation.grade|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No participations found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Auto Submit Script -->
+<script>
+    document.getElementById('id_team').addEventListener('change', function () {
+        document.getElementById('filter-form').submit();
+    });
+    document.getElementById('id_category').addEventListener('change', function () {
+        document.getElementById('filter-form').submit();
+    });
+</script>
+{% endblock %}

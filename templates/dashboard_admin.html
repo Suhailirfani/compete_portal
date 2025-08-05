@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .section {
+        background-color: rgba(3, 48, 103, 0.904);
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        color: white;
+    }
+
+    .section h5 {
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .pending-user {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-small {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.9rem;
+        border-radius: 5px;
+    }
+    .ops {
+        background-color: #f8f9fa;
+        border-color: #f8f9fa;
+        color: #0d6efd;
+        margin: 5PX;
+    }
+</style>
+
+<div class="container mt-5">
+    <h3 class="text-bg-light text-black-50 mb-4">🎛️ Admin Dashboard</h3>
+    <div class="section">
+        <h5>📋 Operations</h5>
+        <a href="{% url 'add_category' %}" class="btn btn-outline-primary ops">Add Category</a>
+        <a href="{% url 'add_program' %}" class="btn btn-outline-primary ops">Add Program</a>
+        <a href="{% url 'participant_list' %}" class="btn btn-outline-primary ops">Participant List</a>
+        <a href="{% url 'add_team' %}" class="btn btn-outline-primary ops">Add Team</a>
+        <a href="{% url 'assign_competition' %}" class="btn btn-outline-primary ops">Assign Programme</a>
+        <a href="{% url 'assigned_programs' %}" class="btn btn-outline-primary ops">Assigned Programs</a>
+        <a href="{% url 'add_marks' %}" class="btn btn-outline-primary ops">Add Marks</a>
+        <a href="{% url 'view_results' %}" class="btn btn-outline-primary ops">View Results</a>
+        <a href="{% url 'enter_marks_summary' %}" class="btn btn-outline-primary ops">Enter Marks</a>
+        <a href="{% url 'team_leaderboard' %}" class="btn btn-outline-primary ops">Leaderboard</a>
+
+    </div>
+    <!-- Programs Section -->
+    <div class="section">
+        <h5>📋 Programs</h5>
+        <ul>
+            {% for program in programs %}
+            <li>{{ program.name }} ({{ program.category.name }}) - {{ program.stage }} at {{ program.schedule_time }}</li>
+            {% empty %}
+            <li>No programs available.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Teams Section -->
+    <div class="section">
+        <h5>👥 Teams</h5>
+        <ul>
+            {% for team in teams %}
+            <li>{{ team.name }}</li>
+            {% empty %}
+            <li>No teams created yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Pending Users Section -->
+    <div class="section">
+        <h5>⏳ Pending User Approvals</h5>
+        {% for user in pending_users %}
+        <div class="pending-user">
+            <div>
+                <strong>{{ user.username }}</strong><br>
+                <small>{{ user.email }}</small>
+            </div>
+            <a href="{% url 'approve_user' user.id %}" class="btn btn-success btn-small">Approve ✅</a>
+        </div>
+        {% empty %}
+        <p>No users pending approval 🎉</p>
+        {% endfor %}
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex mt-4">
+    <a href="{% url 'enter_marks_summary' %}" class="btn btn-primary">Enter Marks & Calculate Results</a>
+    <a href="{% url 'view_users' %}" class="btn btn-outline-info btn-custom">Users</a>
+    <a href="{% url 'logout' %}" class="btn btn-danger ms-auto">Logout</a>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>📊 Competition Results</h3>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Program</th>
+            <th>Contestant</th>
+            <th>Team</th>
+            <th>Marks</th>
+            <th>Grade</th>
+            <th>Rank</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in participations %}
+        <tr>
+            <td>{{ p.program.name }}</td>
+            <td>{{ p.contestant.name }}</td>
+            <td>{{ p.contestant.team.name }}</td>
+            <td>{{ p.marks }}</td>
+            <td>{{ p.grade }}</td>
+            <td>{{ p.rank }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'export_excel' %}" class="btn btn-success">⬇️ Download Excel</a>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Edit Category</h2>
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="name" class="form-label">New Category Name</label>
+            <input type="text" name="name" id="name" class="form-control" value="{{ category.name }}">
+        </div>
+        <button type="submit" class="btn btn-success">Update</button>
+        <a href="{% url 'add_category' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

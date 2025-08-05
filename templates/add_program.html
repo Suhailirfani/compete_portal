@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Add New Program</h2>
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="name">Program Name</label>
+            <input type="text" name="name" id="name" class="form-control" placeholder="Eg: Group Song, Skit">
+        </div>
+
+        <div class="mb-3">
+            <label for="category">Select Category</label>
+            <select name="category" id="category" class="form-select">
+                <option value="">-- Choose Category --</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Program</button>
+    </form>
+
+    <hr>
+
+   <h4>Existing Programs</h4>
+    <ul class="list-group">
+        {% for program in programs %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ program.name }} ({{ program.category.name }})
+                <span>
+                    <a href="{% url 'edit_program' program.id %}" class="btn btn-sm btn-warning">Edit</a>
+                    <a href="{% url 'delete_program' program.id %}" class="btn btn-sm btn-danger"
+                    onclick="return confirm('Are you sure to delete this program?')">Delete</a>
+                </span>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No programs added yet.</li>
+        {% endfor %}
+    </ul>
+
+</div>
+{% endblock %}

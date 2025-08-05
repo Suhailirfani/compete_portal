@@ -1,0 +1,50 @@
+# competition_app/urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.landing_view, name='landing'),
+    path('signup', views.signup_view, name='signup'),
+    path('logout/', views.custom_logout_view, name='logout'),
+    path('admin_dashboard/', views.dashboard_admin, name='dashboard_admin'),
+    path('team_dashboard/', views.dashboard_team, name='dashboard_team'),
+    path('add_contestant/', views.add_contestant, name='add_contestant'),
+    path('assign_competition/', views.assign_competition, name='assign_competition'),
+    path('enter_marks_summary/', views.enter_marks_summary, name='enter_marks_summary'),
+    path('results/', views.results_view, name='results'),
+    path('export_excel/', views.export_excel, name='export_excel'),
+    path('leaderboard/', views.leaderboard, name='leaderboard'),
+    path('login/', views.custom_login_view, name='login'),
+    path('admin/dashboard/', views.dashboard_admin, name='admin_dashboard'),
+    path('team/dashboard/', views.dashboard_team, name='team_dashboard'),
+    path('pending-users/', views.pending_users, name='pending_users'),
+    path('approve-user/<int:user_id>/', views.approve_user, name='approve_user'),
+    path('users/', views.view_users, name='view_users'),
+    path('users/delete/<int:user_id>/', views.delete_user, name='delete_user'),
+    path('users/edit/<int:user_id>/', views.edit_user, name='edit_user'),
+    path('add-category/', views.add_category, name='add_category'),
+    path('add-category/', views.add_category, name='add_category'),
+    path('edit-category/<int:category_id>/', views.edit_category, name='edit_category'),
+    path('delete-category/<int:category_id>/', views.delete_category, name='delete_category'),
+    path('add-program/', views.add_program, name='add_program'),
+    path('edit-program/<int:program_id>/', views.edit_program, name='edit_program'),
+    path('delete-program/<int:program_id>/', views.delete_program, name='delete_program'), 
+    path('participants/', views.participant_list, name='participant_list'),
+    path('participants/add/', views.add_participant, name='add_participant'),
+    path('participants/edit/<int:id>/', views.edit_participant, name='edit_participant'),
+    path('participants/delete/<int:id>/', views.delete_participant, name='delete_participant'),
+    path('add_team/', views.add_team, name='add_team'),
+    path('edit_team/<int:team_id>/', views.edit_team, name='edit_team'),
+    path('delete_team/<int:team_id>/', views.delete_team, name='delete_team'),
+    path('assigned-programs/', views.view_assigned_programs, name='assigned_programs'),
+    path('add_marks/', views.add_marks, name='add_marks'),
+    path('view_results/', views.view_results, name='view_results'),
+    path('team-leaderboard/', views.team_leaderboard, name='team_leaderboard'),
+    path('team-detail/<int:team_id>/', views.team_detail, name='team_detail'),
+    path('team_marks_summary/', views.team_marks_summary, name='team_marks_summary'),
+    path('download/pdf/', views.download_participants_pdf, name='download_participants_pdf'),
+    path('download/excel/', views.download_participants_excel, name='download_participants_excel'),
+
+
+
+]

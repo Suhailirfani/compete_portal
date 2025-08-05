@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Add New Category</h2>
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="name" class="form-label">Category Name</label>
+            <input type="text" name="name" id="name" class="form-control" placeholder="e.g., Senior">
+        </div>
+        <button type="submit" class="btn btn-primary">Add Category</button>
+    </form>
+
+    <hr class="my-4">
+
+    <h4>Existing Categories</h4>
+<ul class="list-group">
+    {% for category in categories %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ category.name }}
+            <span>
+                <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-warning">Edit</a>
+                <a href="{% url 'delete_category' category.id %}" class="btn btn-sm btn-danger"
+                   onclick="return confirm('Are you sure you want to delete this category?');">Delete</a>
+            </span>
+        </li>
+    {% empty %}
+        <li class="list-group-item text-muted">No categories yet.</li>
+    {% endfor %}
+</ul>
+
+</div>
+{% endblock %}

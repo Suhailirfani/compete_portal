@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Edit Program</h2>
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="name">Program Name</label>
+            <input type="text" name="name" id="name" value="{{ program.name }}" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="category">Select Category</label>
+            <select name="category" id="category" class="form-select">
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if program.category.id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Program</button>
+    </form>
+</div>
+{% endblock %}

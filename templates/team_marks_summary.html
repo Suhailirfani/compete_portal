@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2 class="mt-4">Marks Summary - {{ team.name }}</h2>
+    
+    {% if participations %}
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Program</th>
+                    <th>Contestant</th>
+                    <th>Marks</th>
+                    <th>Rank</th>
+                    <th>Grade</th>
+                    <th>Rank Points</th>
+                    <th>Grade Points</th>
+                    <th>Total Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in participations %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ p.program.name }}</td>
+                        <td>{{ p.contestant.name }}</td>
+                        <td>{{ p.marks }}</td>
+                        <td>{{ p.rank }}</td>
+                        <td>{{ p.grade }}</td>
+                        <td>{{ p.rank_points }}</td>
+                        <td>{{ p.grade_points }}</td>
+                        <td>{{ p.total_points }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No marks data available yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

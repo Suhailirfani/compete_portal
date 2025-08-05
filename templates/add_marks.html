@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>🎯 Add Marks - Filter by Category & Program</h3>
+
+    <form method="get" class="row mb-4">
+        <div class="col-md-5">
+            <label>Category</label>
+            <select name="category" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Choose Category --</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id|slugify %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label>Program</label>
+            <select name="program" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Choose Program --</option>
+                {% for program in programs %}
+                    <option value="{{ program.id }}" {% if selected_program == program.id|slugify %}selected{% endif %}>
+                        {{ program.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary w-100">Go</button>
+        </div>
+    </form>
+
+    {% if formset.forms %}
+        <form method="post">
+            {% csrf_token %}
+            {{ formset.management_form }}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Chest No</th>
+                        <th>Name</th>
+                        <th>Team</th>
+                        <th>Marks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in formset.forms %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ form.instance.contestant.chest_no }}</td>
+                            <td>{{ form.instance.contestant.name }}</td>
+                            <td>{{ form.instance.contestant.team.name }}</td>
+                            <td>
+                                {% for hidden_field in form.hidden_fields %}
+                                    {{ hidden_field }}
+                                {% endfor %}
+                                {{ form.marks }}
+                                {% if form.marks.errors %}
+                                    <div class="text-danger">{{ form.marks.errors }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-success">💾 Save Marks</button>
+        </form>
+    {% elif selected_category and selected_program %}
+        <div class="alert alert-warning mt-4">No participants found for this program in the selected category.</div>
+    {% endif %}
+</div>
+{% endblock %}

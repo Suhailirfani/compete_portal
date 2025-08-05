@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Participants PDF</title>
+    <style>
+        table {
+            width: 100%; border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black; padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>All Participants</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Chest No</th>
+                <th>Name</th>
+                <th>Team</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in participants %}
+            <tr>
+                <td>{{ p.chest_no }}</td>
+                <td>{{ p.name }}</td>
+                <td>{{ p.team.name }}</td>
+                <td>{{ p.category.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

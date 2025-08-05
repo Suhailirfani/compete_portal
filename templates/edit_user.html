@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h3>Edit User</h3>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label>Username</label>
+            <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+        </div>
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+        </div>
+        <div class="mb-3">
+            <label>Role</label>
+            <select name="role" class="form-select">
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>Teacher</option>
+                <option value="student" {% if user.role == 'student' %}selected{% endif %}>Student</option>
+            </select>
+        </div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}>
+            <label class="form-check-label">Is Active</label>
+        </div>
+        <button type="submit" class="btn btn-success">Update</button>
+        <a href="{% url 'view_users' %}" class="btn btn-secondary">Back</a>
+    </form>
+</div>
+{% endblock %}

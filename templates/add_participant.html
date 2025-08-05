@@ -1,0 +1,54 @@
+<!-- Modal -->
+<div class="modal fade" id="addParticipantModal" tabindex="-1" aria-labelledby="addParticipantModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'add_participant' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="addParticipantModalLabel">Add Participant</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Raw Input Fields Instead of {{ form }} -->
+          <div class="mb-3">
+            <label for="id_name" class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" id="id_name" required>
+          </div>
+
+          <div class="mb-3">
+           <label for="id_team" class="form-label">Team</label>
+           <select name="team" class="form-select" id="id_team" required {% if request.user.team %}disabled{% endif %}>
+            {% for team in teams %}
+              <option value="{{ team.id }}"
+              {% if request.user.team and request.user.team.id == team.id %}
+                selected
+              {% endif %}
+              >{{ team.name }}</option>
+              {% endfor %}
+            </select>
+
+            {% if request.user.team %}
+              <input type="hidden" name="team" value="{{ request.user.team.id }}">
+            {% endif %}
+          </div>
+
+
+          <div class="mb-3">
+            <label for="id_category" class="form-label">Category</label>
+            <select name="category" class="form-select" id="id_category" required>
+              {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-success">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

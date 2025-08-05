@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>🏆 Competition Results</h3>
+
+    <table class="table table-bordered table-hover mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>Rank</th>
+                <th>Chest No</th>
+                <th>Contestant</th>
+                <th>Program</th>
+                <th>Category</th>
+                <th>Marks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+                <tr {% if result.rank == 1 %} class="table-success" {% elif result.rank == 2 %} class="table-info" {% elif result.rank == 3 %} class="table-warning" {% endif %}>
+                    <td>
+                        {% if result.rank == 1 %}🥇{% elif result.rank == 2 %}🥈{% elif result.rank == 3 %}🥉{% else %}{{ result.rank }}{% endif %}
+                    </td>
+                    <td>{{ result.contestant.chest_no }}</td>
+                    <td>{{ result.contestant.name }}</td>
+                    <td>{{ result.program.name }}</td>
+                    <td>{{ result.contestant.category.name }}</td>
+                    <td>{{ result.marks }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="text-center">No results found</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

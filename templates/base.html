@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <title>Competition App</title>
+    <link rel="icon" type="image/png" href="{% static 'kubba.png' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2 class="text-center mb-4">🎉 Competition Management System</h2>
+        {% block content %}{% endblock %}
+    </div>
+    <div class="mb-3 text-center">
+    {% if request.user.role == 'admin' %}
+        <a href="{% url 'dashboard_admin' %}" class="btn btn-outline-dark">Admin Dashboard</a>
+    {% elif request.user.role == 'team' %}
+        <a href="{% url 'dashboard_team' %}" class="btn btn-outline-dark">Team Dashboard</a>
+    {% endif %}
+    <a href="{% url 'results' %}" class="btn btn-outline-primary">Results</a>
+    <a href="{% url 'leaderboard' %}" class="btn btn-outline-success">Leaderboard</a>
+</div>
+
+</body>
+</html>

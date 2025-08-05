@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .section {
+        background-color: rgba(3, 48, 103, 0.904);
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        color: white;
+    }
+
+    .section h5 {
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .pending-user {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-small {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.9rem;
+        border-radius: 5px;
+    }
+    .ops {
+        background-color: #f8f9fa;
+        border-color: #f8f9fa;
+        color: #0d6efd;
+        margin: 4px;
+    }
+</style>
+<h3>Team Dashboard - {{ team.name }}</h3>
+<div class="d-flex">
+    <!-- Other content on the left -->
+    <a href="{% url 'logout' %}" class="btn btn-danger ms-auto">Logout</a>
+</div>
+
+
+        <h5>📋 Operations</h5>
+        <div class="section">
+            <a href="{% url 'participant_list' %}" class="btn btn-outline-primary ops">Participant List</a>
+            <a href="{% url 'assign_competition' %}" class="btn btn-outline-primary ops">Assign Programme</a>
+            <a href="{% url 'assigned_programs' %}" class="btn btn-outline-primary ops">Assigned Programs</a>
+            <a href="{% url 'team_marks_summary' %}" class="btn btn-outline-primary ops">Team Marks Summary</a>
+            <a href="{% url 'team_leaderboard' %}" class="btn btn-outline-primary ops">Leaderboard</a>
+        </div>
+
+
+<h5 class="mt-4 mb-4">
+    <i class="fas fa-users me-2 text-info"></i>Your Contestants
+</h5>
+
+{% regroup contestants by category as contestants_by_category %}
+<div class="row">
+    {% for category in contestants_by_category %}
+    <div class="col-md-6 mb-4">
+        <div class="card border-primary">
+            <div class="card-header bg-primary bg-opacity-10 border-primary">
+                <h6 class="mb-0 text-primary">
+                    <i class="fas fa-tag me-2"></i>{{ category.grouper }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for contestant in category.list %}
+                    <div class="list-group-item d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-3">{{ forloop.counter }}</span>
+                            <i class="fas fa-user me-2 text-muted"></i>
+                            <span>{{ contestant.name|upper }}</span>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-id-badge me-1"></i>{{ contestant.chest_no }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
