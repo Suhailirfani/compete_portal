@@ -43,7 +43,7 @@ urlpatterns = [
     path('team-detail/<int:team_id>/', views.team_detail, name='team_detail'),
     path('team_marks_summary/', views.team_marks_summary, name='team_marks_summary'),
     path('download/pdf/', views.download_participants_pdf, name='download_participants_pdf'),
-    path('download/excel/', views.download_participants_excel, name='download_participants_excel'),
+
 
 
 

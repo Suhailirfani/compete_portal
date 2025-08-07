@@ -918,7 +918,6 @@ def team_detail(request, team_id):
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
-import pandas as pd
 from .models import Contestant
 
 def download_participants_pdf(request):
@@ -938,19 +937,4 @@ def download_participants_pdf(request):
     return response
 
 
-def download_participants_excel(request):
-    participants = Contestant.objects.select_related('team', 'category').all()
-    data = []
-    for p in participants:
-        data.append({
-            'Chest No': p.chest_no,
-            'Name': p.name,
-            'Team': p.team.name,
-            'Category': p.category.name
-        })
 
-    df = pd.DataFrame(data)
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="participants.xlsx"'
-    df.to_excel(response, index=False)
-    return response
