@@ -29,21 +29,29 @@
 
     <hr>
 
-   <h4>Existing Programs</h4>
+
+    <h4>Existing Programs</h4>
+
+{% regroup programs by category as grouped_programs %}
+
+{% for group in grouped_programs %}
+    <h5 class="mt-3">{{ group.grouper.name|upper }}</h5>
     <ul class="list-group">
-        {% for program in programs %}
+        {% for program in group.list %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ program.name }} ({{ program.category.name }})
+                {{ program.name }}
                 <span>
                     <a href="{% url 'edit_program' program.id %}" class="btn btn-sm btn-warning">Edit</a>
                     <a href="{% url 'delete_program' program.id %}" class="btn btn-sm btn-danger"
-                    onclick="return confirm('Are you sure to delete this program?')">Delete</a>
+                       onclick="return confirm('Are you sure to delete this program?')">Delete</a>
                 </span>
             </li>
-        {% empty %}
-            <li class="list-group-item">No programs added yet.</li>
         {% endfor %}
     </ul>
+{% empty %}
+    <p>No programs added yet.</p>
+{% endfor %}
+
 
 </div>
 {% endblock %}

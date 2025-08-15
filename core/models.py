@@ -58,7 +58,7 @@ class Participation(models.Model):
     marks = models.IntegerField(null=True, blank=True)
     rank = models.PositiveIntegerField(null=True, blank=True)
     grade = models.CharField(max_length=1, null=True, blank=True)
-    points_awarded = models.IntegerField(default=False)
+    points_awarded = models.BooleanField(default=False)
 
 # ----------------- Team Points -----------------
 class TeamPoints(models.Model):

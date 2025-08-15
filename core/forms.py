@@ -87,7 +87,76 @@ class TeamForm(forms.ModelForm):
         }
 
 
+# Add this to your forms.py
+
+from django import forms
+from .models import Participation
+
 class MarkEntryForm(forms.ModelForm):
     class Meta:
         model = Participation
         fields = ['marks']
+        widgets = {
+            'marks': forms.NumberInput(attrs={
+                'class': 'marks-input',
+                'min': '0',
+                'max': '100',
+                'step': '0.01',
+                'placeholder': '0.00'
+            })
+        }
+    
+    def clean_marks(self):
+        marks = self.cleaned_data.get('marks')
+        if marks is not None:
+            if marks < 0:
+                raise forms.ValidationError("Marks cannot be negative.")
+            if marks > 100:
+                raise forms.ValidationError("Marks cannot exceed 100.")
+        return marks
+    
+from django import forms
+from .models import Participation, Program
+
+class MarksForm(forms.ModelForm):
+    class Meta:
+        model = Participation
+        fields = ['marks', 'rank', 'grade']
+        widgets = {
+            'marks': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'rank': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'grade': forms.Select(
+                choices=[('', '---'), ('A', 'A'), ('B', 'B'), ('C', 'C')],
+                attrs={'class': 'form-control'}
+            ),
+        }
+
+class BulkMarksForm(forms.Form):
+    """Form for adding marks to multiple participants at once"""
+    
+    def __init__(self, participations, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        for participation in participations:
+            # Create fields for each participation
+            self.fields[f'marks_{participation.id}'] = forms.IntegerField(
+                label=f"{participation.contestant.name} - Marks",
+                required=False,
+                initial=participation.marks,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 0})
+            )
+            
+            self.fields[f'rank_{participation.id}'] = forms.IntegerField(
+                label=f"{participation.contestant.name} - Rank",
+                required=False,
+                initial=participation.rank,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1})
+            )
+            
+            self.fields[f'grade_{participation.id}'] = forms.ChoiceField(
+                label=f"{participation.contestant.name} - Grade",
+                choices=[('', '---'), ('A', 'A'), ('B', 'B'), ('C', 'C')],
+                required=False,
+                initial=participation.grade,
+                widget=forms.Select(attrs={'class': 'form-control'})
+            )

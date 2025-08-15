@@ -651,15 +651,20 @@ def view_results(request):
 
 
 from django.shortcuts import render, redirect
-from django.forms import modelformset_factory
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.forms import modelformset_factory
+from django.db import transaction
+from django.http import JsonResponse
 from .models import Category, Program, Participation, TeamPoints
 from .forms import MarkEntryForm
 
+# Constants for point calculation
 POINTS_FOR_RANK = {1: 6, 2: 3, 3: 1}
 POINTS_FOR_GRADE = {'A': 6, 'B': 3, 'C': 1}
 
 def get_grade(marks):
+    """Convert marks to grade"""
     if marks is None:
         return None
     if marks >= 80:
@@ -672,6 +677,187 @@ def get_grade(marks):
 
 @login_required
 def add_marks(request):
+    # Check if user is admin
+    if request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard_team')
+    
+    # Get filter parameters
+    category_id = request.GET.get('category')
+    program_id = request.GET.get('program')
+    
+    # Get all categories for dropdown
+    categories = Category.objects.all().order_by('name')
+    
+    # Filter programs based on selected category
+    programs = Program.objects.none()
+    if category_id:
+        try:
+            category_id = int(category_id)
+            programs = Program.objects.filter(category_id=category_id).order_by('name')
+        except (ValueError, TypeError):
+            category_id = None
+    
+    # Get participations based on filters
+    participations = Participation.objects.none()
+    if category_id and program_id:
+        try:
+            program_id = int(program_id)
+            participations = Participation.objects.filter(
+                contestant__category_id=category_id,
+                program_id=program_id
+            ).select_related(
+                'contestant', 
+                'contestant__team', 
+                'program'
+            ).order_by('contestant__chest_no')
+        except (ValueError, TypeError):
+            program_id = None
+    
+    # Create formset
+    ParticipationFormSet = modelformset_factory(
+        Participation,
+        form=MarkEntryForm,
+        extra=0,
+        can_delete=False
+    )
+    
+    # Handle form submission
+    if request.method == 'POST':
+        formset = ParticipationFormSet(request.POST, queryset=participations)
+        
+        if formset.is_valid():
+            try:
+                with transaction.atomic():
+                    # Save all forms in the formset
+                    instances = formset.save(commit=False)
+                    saved_count = 0
+                    
+                    for instance in instances:
+                        if instance.marks is not None:
+                            instance.save()
+                            saved_count += 1
+                    
+                    # Calculate rankings and assign points
+                    if saved_count > 0:
+                        calculate_rankings_and_points(category_id, program_id)
+                    
+                    messages.success(request, f'Successfully saved marks for {saved_count} participants!')
+                    
+                    # Redirect to same page with filters to show updated data
+                    return redirect(f"{request.path}?category={category_id}&program={program_id}")
+                    
+            except Exception as e:
+                messages.error(request, f'Error saving marks: {str(e)}')
+                print(f"Error in add_marks: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            # Handle form errors
+            messages.error(request, 'Please correct the errors below.')
+            for i, form in enumerate(formset):
+                if form.errors:
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'Row {i+1} - {field}: {error}')
+    else:
+        # GET request - initialize empty formset
+        formset = ParticipationFormSet(queryset=participations)
+    
+    # Prepare context
+    context = {
+        'categories': categories,
+        'programs': programs,
+        'formset': formset,
+        'selected_category': str(category_id) if category_id else '',
+        'selected_program': str(program_id) if program_id else '',
+        'participations': participations,
+    }
+    
+    return render(request, 'add_marks.html', context)
+
+def calculate_rankings_and_points(category_id, program_id):
+    """
+    Calculate rankings and award points for a specific program in a category
+    """
+    try:
+        # Get all participants with marks for this program/category combination
+        participants = Participation.objects.filter(
+            contestant__category_id=category_id,
+            program_id=program_id,
+            marks__isnull=False
+        ).select_related('contestant', 'contestant__team').order_by('-marks', 'contestant__chest_no')
+        
+        print(f"Calculating rankings for {participants.count()} participants")
+        
+        # Reset all rankings first
+        Participation.objects.filter(
+            contestant__category_id=category_id,
+            program_id=program_id
+        ).update(rank=None, grade=None)
+        
+        # Calculate new rankings and grades
+        for rank, participant in enumerate(participants, start=1):
+            # Set rank and grade
+            participant.rank = rank
+            participant.grade = get_grade(participant.marks)
+            
+            # Award points if not already awarded
+            if not participant.points_awarded:
+                total_points = calculate_points(rank, participant.grade)
+                
+                if total_points > 0:
+                    # Award points to team
+                    team = participant.contestant.team
+                    team_points, created = TeamPoints.objects.get_or_create(
+                        team=team,
+                        defaults={'points': 0}
+                    )
+                    
+                    team_points.points += total_points
+                    team_points.save()
+                    
+                    # Update team's total points
+                    team.total_points += total_points
+                    team.save()
+                    
+                    # Mark points as awarded
+                    participant.points_awarded = True
+                    
+                    print(f"Awarded {total_points} points to {participant.contestant.name} (Rank: {rank}, Grade: {participant.grade})")
+            
+            # Save the participant with updated rank and grade
+            participant.save()
+            
+    except Exception as e:
+        print(f"Error in calculate_rankings_and_points: {e}")
+        raise
+
+def calculate_points(rank, grade):
+    """
+    Calculate total points based on rank and grade
+    """
+    rank_points = POINTS_FOR_RANK.get(rank, 0)
+    grade_points = POINTS_FOR_GRADE.get(grade, 0) if grade else 0
+    return rank_points + grade_points
+
+# Optional: AJAX view for dynamic program loading
+@login_required
+def get_programs_by_category(request):
+    """
+    AJAX view to get programs filtered by category
+    """
+    category_id = request.GET.get('category_id')
+    programs = []
+    
+    if category_id:
+        try:
+            programs_qs = Program.objects.filter(category_id=int(category_id)).order_by('name')
+            programs = [{'id': p.id, 'name': p.name} for p in programs_qs]
+        except (ValueError, TypeError):
+            pass
+    
+    return JsonResponse({'programs': programs})
     if request.user.role != 'admin':
         return redirect('dashboard_team')
 
@@ -679,14 +865,20 @@ def add_marks(request):
     program_id = request.GET.get('program')
 
     categories = Category.objects.all()
-    programs = Program.objects.all()
+    
+    # Filter programs based on selected category
+    if category_id:
+        programs = Program.objects.filter(category_id=category_id)
+    else:
+        programs = Program.objects.all()
+    
     participations = Participation.objects.none()
 
     if category_id and program_id:
         participations = Participation.objects.filter(
             contestant__category_id=category_id,
             program_id=program_id
-        ).order_by('id')
+        ).select_related('contestant', 'contestant__team', 'program').order_by('contestant__chest_no')
 
     ParticipationFormSet = modelformset_factory(
         Participation, form=MarkEntryForm, extra=0, can_delete=False
@@ -723,9 +915,11 @@ def add_marks(request):
 
                 participant.save()
 
+            messages.success(request, f'Marks saved successfully for {updated_participants.count()} participants!')
             return redirect(request.path + f"?category={category_id}&program={program_id}")
         else:
-            # Add this for debugging
+            # Add error message
+            messages.error(request, 'There were errors in the form. Please check and try again.')
             print("Formset errors:", formset.errors)
     else:
         formset = ParticipationFormSet(queryset=participations)
@@ -736,8 +930,11 @@ def add_marks(request):
         'formset': formset,
         'selected_category': category_id,
         'selected_program': program_id,
-        'participations': participations,  # Add this for template
+        'participations': participations,
     })
+
+
+
 
 
 from django.shortcuts import render, redirect
@@ -935,6 +1132,5 @@ def download_participants_pdf(request):
     if pisa_status.err:
         return HttpResponse('We had some errors <pre>' + html + '</pre>')
     return response
-
 
 

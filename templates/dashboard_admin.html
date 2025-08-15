@@ -1,107 +1,677 @@
 {% extends 'base.html' %}
-{% block content %}
 
+{% block content %}
 <style>
-    .section {
-        background-color: rgba(3, 48, 103, 0.904);
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-        color: white;
+  :root {
+    --primary-blue: rgba(3, 48, 103, 0.95);
+    --primary-light: rgba(3, 48, 103, 0.1);
+    --accent-blue: #0d6efd;
+    --success-green: #28a745;
+    --danger-red: #dc3545;
+    --warning-orange: #fd7e14;
+    --light-gray: #f8f9fa;
+    --border-radius: 12px;
+    --shadow-light: 0 2px 10px rgba(0,0,0,0.1);
+    --shadow-medium: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .mobile-header {
+    background: var(--primary-blue);
+    color: white;
+    padding: 1rem 0.5rem;
+    top: 0;
+    z-index: 1000;
+    box-shadow: var(--shadow-medium);
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .logo-icon {
+    font-size: 1.5rem;
+  }
+
+  .app-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .admin-title{
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .header-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .header-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: white;
+  }
+
+  .main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.5rem;
+  }
+
+  .dashboard-grid {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+  }
+
+  .card-header {
+    background: var(--primary-blue);
+    color: white;
+    padding: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .operations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .operation-btn {
+    background: linear-gradient(135deg, var(--accent-blue), #0056b3);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    min-height: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .operation-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    color: white;
+  }
+
+  .operation-btn:active {
+    transform: translateY(0);
+  }
+
+  .list-container {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .list-item {
+    background: var(--light-gray);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-blue);
+    transition: all 0.2s ease;
+  }
+
+  .list-item:hover {
+    background: #e9ecef;
+    transform: translateX(2px);
+  }
+
+  .list-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .list-item-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+  }
+
+  .list-item-subtitle {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .pending-user {
+    background: linear-gradient(135deg, rgba(255,193,7,0.1), rgba(255,193,7,0.05));
+    border: 1px solid rgba(255,193,7,0.3);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .pending-user-info {
+    flex: 1;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .user-email {
+    color: #666;
+    font-size: 0.95rem;
+  }
+
+  .approve-btn {
+    background: var(--success-green);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .approve-btn:hover {
+    background: #218838;
+    color: white;
+    transform: scale(1.05);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .bottom-actions {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    margin: 1rem -0.5rem -0.5rem -0.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+  }
+
+  .primary-action {
+    background: linear-gradient(135deg, var(--accent-blue), #0056b3);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .primary-action:hover {
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .secondary-action {
+    background: var(--light-gray);
+    color: var(--accent-blue);
+    border: 1px solid #dee2e6;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .secondary-action:hover {
+    background: #e9ecef;
+    color: var(--accent-blue);
+  }
+
+  .logout-btn {
+    background: var(--danger-red);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .logout-btn:hover {
+    background: #c82333;
+    color: white;
+  }
+
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-item {
+    background: white;
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: var(--shadow-light);
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent-blue);
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    body {
+      font-size: 16px; /* Prevent iOS zoom on form inputs */
     }
 
-    .section h5 {
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 0.5rem;
-        margin-bottom: 1rem;
-        
+    .app-title {
+      font-size: 1.4rem;
+    }
+
+    .main-container {
+      padding: 0.25rem;
+    }
+
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .operations-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+    }
+
+    .operation-btn {
+      padding: 0.8rem 0.5rem;
+      font-size: 0.95rem;
+      min-height: 65px;
+      font-weight: 600;
+    }
+
+    .card-header {
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 1rem;
+      font-size: 1rem;
+    }
+
+    .list-item {
+      padding: 0.8rem;
+    }
+
+    .list-item-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .list-item-subtitle {
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .user-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .user-email {
+      font-size: 0.95rem;
+    }
+
+    .approve-btn {
+      font-size: 1rem;
+      padding: 0.7rem 1.3rem;
+      font-weight: 600;
     }
 
     .pending-user {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+      gap: 0.75rem;
+      padding: 1.2rem;
     }
 
-    .btn-small {
-        padding: 0.3rem 0.8rem;
-        font-size: 0.9rem;
-        border-radius: 5px;
+    .bottom-actions {
+      grid-template-columns: 1fr;
+      gap: 0.6rem;
+      padding: 1rem;
     }
-    .ops {
-        background-color: #f8f9fa;
-        border-color: #f8f9fa;
-        color: #0d6efd;
-        margin: 5PX;
+
+    .primary-action, .secondary-action, .logout-btn {
+      font-size: 1rem;
+      padding: 0.9rem 1rem;
+      font-weight: 600;
     }
+
+    .stats-bar {
+      grid-template-columns: repeat(2, 1fr);
+      margin-bottom: 1.2rem;
+    }
+
+    .stat-item {
+      padding: 1rem;
+    }
+
+    .stat-number {
+      font-size: 1.8rem;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      margin-top: 0.4rem;
+    }
+
+    .header-btn {
+      font-size: 1rem;
+      min-width: 44px;
+      height: 44px;
+    }
+
+    .empty-state {
+      padding: 2.5rem;
+      font-size: 1rem;
+    }
+
+    .empty-state-icon {
+      font-size: 3.5rem;
+    }
+  }
+
+  /* Tablet Optimizations */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .operations-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .bottom-actions {
+      grid-template-columns: 1fr 1fr auto;
+    }
+  }
+
+  /* Desktop Optimizations */
+  @media (min-width: 1025px) {
+    .main-container {
+      padding: 1rem;
+    }
+
+    .dashboard-grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+
+    .operations-card {
+      grid-column: 1 / -1;
+    }
+
+    .operations-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .bottom-actions {
+      position: relative;
+      margin: 1rem 0 0 0;
+      grid-template-columns: 1fr 1fr auto;
+      box-shadow: var(--shadow-light);
+      border-radius: var(--border-radius);
+    }
+
+    .mobile-header {
+      position: relative;
+    }
+  }
+
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    body {
+      background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    }
+  }
+
+  /* Accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* Focus styles for keyboard navigation */
+  .operation-btn:focus,
+  .header-btn:focus,
+  .approve-btn:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
 </style>
 
-<div class="container mt-5">
-    <h3 class="text-bg-light text-black-50 mb-4">🎛️ Admin Dashboard</h3>
-    <div class="section">
-        <h5>📋 Operations</h5>
-        <a href="{% url 'add_category' %}" class="btn btn-outline-primary ops">Add Category</a>
-        <a href="{% url 'add_program' %}" class="btn btn-outline-primary ops">Add Program</a>
-        <a href="{% url 'participant_list' %}" class="btn btn-outline-primary ops">Participant List</a>
-        <a href="{% url 'add_team' %}" class="btn btn-outline-primary ops">Add Team</a>
-        <a href="{% url 'assign_competition' %}" class="btn btn-outline-primary ops">Assign Programme</a>
-        <a href="{% url 'assigned_programs' %}" class="btn btn-outline-primary ops">Assigned Programs</a>
-        <a href="{% url 'add_marks' %}" class="btn btn-outline-primary ops">Add Marks</a>
-        <a href="{% url 'view_results' %}" class="btn btn-outline-primary ops">View Results</a>
-        <a href="{% url 'enter_marks_summary' %}" class="btn btn-outline-primary ops">Enter Marks</a>
-        <a href="{% url 'team_leaderboard' %}" class="btn btn-outline-primary ops">Leaderboard</a>
-
+<!-- Mobile Header -->
+<div class="mobile-header">
+  <div class="header-content">
+    <div class="logo-section">
+      <span class="logo-icon">🎛️</span>
+      <h1 class="admin-title">Admin Dashboard</h1>
     </div>
-    <!-- Programs Section -->
-    <div class="section">
-        <h5>📋 Programs</h5>
-        <ul>
-            {% for program in programs %}
-            <li>{{ program.name }} ({{ program.category.name }}) - {{ program.stage }} at {{ program.schedule_time }}</li>
-            {% empty %}
-            <li>No programs available.</li>
-            {% endfor %}
-        </ul>
+    <div class="header-actions">
+      <a href="{% url 'view_users' %}" class="header-btn" title="Users">👥</a>
+      <a href="{% url 'logout' %}" class="header-btn logout-btn" title="Logout">Logout</a>
+    </div>
+  </div>
+</div>
+
+<div class="main-container">
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-number">{{ programs|length }}</div>
+      <div class="stat-label">Programs</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">{{ teams|length }}</div>
+      <div class="stat-label">Teams</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">{{ pending_users|length }}</div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Operations Card -->
+    <div class="card operations-card">
+      <div class="card-header">
+        <span>📋</span>
+        <span>Quick Actions</span>
+      </div>
+      <div class="card-body">
+        <div class="operations-grid">
+          <a href="{% url 'add_category' %}" class="operation-btn">Add Category</a>
+          <a href="{% url 'add_program' %}" class="operation-btn">Add Program</a>
+          <a href="{% url 'participant_list' %}" class="operation-btn">Participants</a>
+          <a href="{% url 'add_team' %}" class="operation-btn">Add Team</a>
+          <a href="{% url 'assign_competition' %}" class="operation-btn">Assign Programme</a>
+          <a href="{% url 'assigned_programs' %}" class="operation-btn">Assigned Programs</a>
+          <a href="{% url 'add_marks' %}" class="operation-btn">Add Marks</a>
+          <a href="{% url 'view_results' %}" class="operation-btn">View Results</a>
+          <a href="{% url 'enter_marks_summary' %}" class="operation-btn">Marks Summary</a>
+          <a href="{% url 'team_leaderboard' %}" class="operation-btn">Leaderboard</a>
+        </div>
+      </div>
     </div>
 
-    <!-- Teams Section -->
-    <div class="section">
-        <h5>👥 Teams</h5>
-        <ul>
-            {% for team in teams %}
-            <li>{{ team.name }}</li>
-            {% empty %}
-            <li>No teams created yet.</li>
-            {% endfor %}
-        </ul>
+    <!-- Programs Card -->
+    <div class="card">
+      <div class="card-header">
+        <span>📋</span>
+        <span>Programs ({{ programs|length }})</span>
+      </div>
+      <div class="card-body">
+        <div class="list-container">
+          {% for program in programs %}
+          <div class="list-item">
+            <div class="list-item-title">{{ program.name }}</div>
+            <div class="list-item-subtitle">{{ program.category.name }} • {{ program.stage }} • {{ program.schedule_time }}</div>
+          </div>
+          {% empty %}
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div>No programs available</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
 
-    <!-- Pending Users Section -->
-    <div class="section">
-        <h5>⏳ Pending User Approvals</h5>
+    <!-- Teams Card -->
+    <div class="card">
+      <div class="card-header">
+        <span>👥</span>
+        <span>Teams ({{ teams|length }})</span>
+      </div>
+      <div class="card-body">
+        <div class="list-container">
+          {% for team in teams %}
+          <div class="list-item">
+            <div class="list-item-title">{{ team.name }}</div>
+          </div>
+          {% empty %}
+          <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <div>No teams created yet</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Users Card -->
+    <div class="card">
+      <div class="card-header">
+        <span>⏳</span>
+        <span>Pending Approvals ({{ pending_users|length }})</span>
+      </div>
+      <div class="card-body">
         {% for user in pending_users %}
         <div class="pending-user">
-            <div>
-                <strong>{{ user.username }}</strong><br>
-                <small>{{ user.email }}</small>
-            </div>
-            <a href="{% url 'approve_user' user.id %}" class="btn btn-success btn-small">Approve ✅</a>
+          <div class="pending-user-info">
+            <div class="user-name">{{ user.username }}</div>
+            <div class="user-email">{{ user.email }}</div>
+          </div>
+          <a href="{% url 'approve_user' user.id %}" class="approve-btn">Approve ✅</a>
         </div>
         {% empty %}
-        <p>No users pending approval 🎉</p>
+        <div class="empty-state">
+          <div class="empty-state-icon">🎉</div>
+          <div>No users pending approval</div>
+        </div>
         {% endfor %}
+      </div>
     </div>
+  </div>
 
-    <!-- Actions -->
-    <div class="d-flex mt-4">
-    <a href="{% url 'enter_marks_summary' %}" class="btn btn-primary">Enter Marks & Calculate Results</a>
-    <a href="{% url 'view_users' %}" class="btn btn-outline-info btn-custom">Users</a>
-    <a href="{% url 'logout' %}" class="btn btn-danger ms-auto">Logout</a>
-    </div>
+  <!-- Bottom Actions -->
+  <div class="bottom-actions">
+    <a href="{% url 'enter_marks_summary' %}" class="primary-action">POINT TABLE</a>
+    <a href="{% url 'view_users' %}" class="secondary-action d-none d-md-block">Manage Users</a>
+    <a href="{% url 'logout' %}" class="logout-btn d-none d-md-block">Logout</a>
+  </div>
 </div>
 
 {% endblock %}
