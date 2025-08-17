@@ -346,7 +346,7 @@ def view_users(request):
     if role:
         users = users.filter(role=role)
 
-    paginator = Paginator(users, 4)  # 10 per page
+    paginator = Paginator(users, 10)  # 10 per page
     page = request.GET.get('page')
     users = paginator.get_page(page)
 
@@ -440,6 +440,9 @@ def delete_category(request, category_id):
 
 from .models import Program
 
+import pandas as pd
+from django.core.files.storage import FileSystemStorage
+
 @login_required
 def add_program(request):
     if request.user.role != 'admin':
@@ -449,18 +452,46 @@ def add_program(request):
     programs = Program.objects.all().order_by('-id')
 
     if request.method == 'POST':
-        name = request.POST.get('name')
-        category_id = request.POST.get('category')
+        # Check if it's a bulk upload
+        if 'excel_file' in request.FILES:
+            excel_file = request.FILES['excel_file']
 
-        if name and category_id:
-            category = Category.objects.get(id=category_id)
-            Program.objects.create(name=name, category=category)
-            messages.success(request, f"Program '{name}' added successfully under {category.name}.")
+            try:
+                # Read Excel file with pandas
+                df = pd.read_excel(excel_file)
+
+                # Expecting columns: "name" and "category"
+                for _, row in df.iterrows():
+                    name = row.get("name")
+                    category_name = row.get("category")
+
+                    if name and category_name:
+                        try:
+                            category = Category.objects.get(name=category_name)
+                            Program.objects.create(name=name, category=category)
+                        except Category.DoesNotExist:
+                            messages.warning(request, f"Category '{category_name}' not found for program '{name}'. Skipped.")
+                messages.success(request, "Bulk upload completed successfully.")
+            except Exception as e:
+                messages.error(request, f"Error processing Excel file: {e}")
+
             return redirect('add_program')
+
         else:
-            messages.error(request, "All fields are required.")
+            # Single entry form
+            name = request.POST.get('name')
+            category_id = request.POST.get('category')
+
+            if name and category_id:
+                category = Category.objects.get(id=category_id)
+                Program.objects.create(name=name, category=category)
+                messages.success(request, f"Program '{name}' added successfully under {category.name}.")
+                return redirect('add_program')
+            else:
+                messages.error(request, "All fields are required.")
 
     return render(request, 'add_program.html', {'categories': categories, 'programs': programs})
+
 
 @login_required
 def edit_program(request, program_id):
@@ -531,16 +562,63 @@ def participant_list(request):
     })
 
 
+import pandas as pd
+from django.contrib import messages
+from django.shortcuts import render, redirect
 from .forms import ContestantForm
+from .models import Contestant, Team, Category
+
 def add_participant(request):
     if request.method == 'POST':
-        form = ContestantForm(request.POST)
-        if form.is_valid():
-            form.save()
+        # --- Bulk Upload Excel ---
+        if 'excel_file' in request.FILES:
+            excel_file = request.FILES['excel_file']
+            try:
+                df = pd.read_excel(excel_file)
+
+                # Expect columns: name, team, category
+                for _, row in df.iterrows():
+                    name = row.get("name")
+                    team_name = row.get("team")
+                    category_name = row.get("category")
+
+                    if not (name and team_name and category_name):
+                        continue  # skip incomplete rows
+
+                    try:
+                        team = Team.objects.get(name=team_name)
+                        category = Category.objects.get(name=category_name)
+
+                        Contestant.objects.create(
+                            name=name,
+                            team=team,
+                            category=category,
+                            # chest_no auto-assigned in save()
+                            # total_points default=0
+                        )
+                    except Team.DoesNotExist:
+                        messages.warning(request, f"Team '{team_name}' not found. Skipped {name}.")
+                    except Category.DoesNotExist:
+                        messages.warning(request, f"Category '{category_name}' not found. Skipped {name}.")
+
+                messages.success(request, "Bulk participant upload successful.")
+            except Exception as e:
+                messages.error(request, f"Error processing Excel: {e}")
+
             return redirect('participant_list')
+
+        # --- Single Form Entry ---
+        else:
+            form = ContestantForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Participant added successfully.")
+                return redirect('participant_list')
     else:
         form = ContestantForm()
+
     return render(request, 'participant_form.html', {'form': form})
+
 
 def edit_participant(request, id):
     participant = get_object_or_404(Contestant, id=id)

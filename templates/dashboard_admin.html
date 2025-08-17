@@ -567,10 +567,12 @@
       <div class="stat-number">{{ teams|length }}</div>
       <div class="stat-label">Teams</div>
     </div>
+    <a href="{% url 'pending_users' %}" >
     <div class="stat-item">
       <div class="stat-number">{{ pending_users|length }}</div>
       <div class="stat-label">Pending</div>
     </div>
+    </a>
   </div>
 
   <div class="dashboard-grid">
