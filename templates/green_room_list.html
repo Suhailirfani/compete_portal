@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Green Room Sign Sheet – {{ program.name }}</h2>
+{% if team_name %}
+    <p><strong>Team:</strong> {{ team_name }}</p>
+{% endif %}
+
+<table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse: collapse;">
+    <thead>
+        <tr>
+            <th style="width: 8%;">S.No</th>
+            <th style="width: 15%;">Chest No</th>
+            <th style="width: 35%;">Participant Name</th>
+            <th style="width: 15%;">Code Letter</th>
+            <th style="width: 27%;">Participant Signature</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for participant in participants %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ participant.chest_no }}</td>
+                <td>{{ participant.name }}</td>
+                <td></td>
+                <td></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

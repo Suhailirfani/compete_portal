@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="text-center mb-4 fw-bold text-primary">Event Management Panel</h2>
+  
+  <div class="row justify-content-center g-4">
+    <!-- Green Room Sign -->
+    <div class="col-md-4">
+      <a href="{% url 'green_room_sign' %}" class="text-decoration-none">
+        <div class="card shadow-lg border-0 rounded-4 h-100 text-center card-hover">
+          <div class="card-body py-5">
+            <i class="bi bi-door-open display-3 text-success mb-3"></i>
+            <h5 class="card-title fw-bold text-dark">Green Room Sign</h5>
+            <p class="text-muted small">Mark presence of participants in the green room.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Valuation Form -->
+    <div class="col-md-4">
+      <a href="{% url 'valuation_form' %}" class="text-decoration-none">
+        <div class="card shadow-lg border-0 rounded-4 h-100 text-center card-hover">
+          <div class="card-body py-5">
+            <i class="bi bi-pencil-square display-3 text-primary mb-3"></i>
+            <h5 class="card-title fw-bold text-dark">Valuation Form</h5>
+            <p class="text-muted small">Enter and manage marks of participants easily.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Call List -->
+    <div class="col-md-4">
+      <a href="{% url 'call_list' %}" class="text-decoration-none">
+        <div class="card shadow-lg border-0 rounded-4 h-100 text-center card-hover">
+          <div class="card-body py-5">
+            <i class="bi bi-megaphone display-3 text-danger mb-3"></i>
+            <h5 class="card-title fw-bold text-dark">Call List</h5>
+            <p class="text-muted small">Generate the list of participants to be called.</p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: 0px 10px 20px rgba(0,0,0,0.15);
+  }
+</style>
+{% endblock %}

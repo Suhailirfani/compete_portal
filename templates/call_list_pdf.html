@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Call List - {{ program.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #007bff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .header .program-name {
+            color: #333;
+            font-size: 16px;
+            margin: 5px 0;
+            font-weight: bold;
+            text-align: left;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 12px;
+            text-align: right;
+        }
+        
+        .info-section {
+            background-color: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .instructions {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        .instructions h4 {
+            margin: 0 0 8px 0;
+            color: #0c5460;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            border: 1px solid #333;
+            padding: 10px 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .chest-no {
+            font-weight: bold;
+            text-align: center;
+            font-size: 14px;
+            background-color: #f8f9fa;
+        }
+        
+        .participant-name {
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .team-name {
+            color: #007bff;
+            font-weight: 500;
+        }
+        
+        .call-number {
+            background-color: #e9ecef;
+            text-align: center;
+            font-weight: bold;
+            width: 60px;
+            font-size: 14px;
+        }
+        
+        .time-slot {
+            width: 100px;
+            text-align: center;
+            background-color: #fff3cd;
+            font-weight: bold;
+        }
+        
+        .status {
+            width: 80px;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .footer {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        
+        .official-section {
+            margin-top: 20px;
+            border: 2px solid #333;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        
+        .official-section h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            text-align: center;
+        }
+        
+        .signature-boxes {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .signature-box {
+            width: 30%;
+            text-align: center;
+            border: 1px solid #333;
+            padding: 15px;
+            background-color: white;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #333;
+            margin: 20px 0 5px 0;
+            padding-bottom: 2px;
+            height: 30px;
+        }
+        
+        .notes-section {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CALL LIST</h1>
+        <div class="program-name">{{ program.name }}</div>
+        <div class="subtitle">
+            Category: {{ program.category.name }}
+            {% if is_team_user %} | Team: {{ team_name }}{% endif %}
+        </div>
+    </div>
+    
+    <div class="info-section">
+        <strong>Program Schedule Information:</strong><br>
+        Program: <strong>{{ program.name }}</strong><br>
+        Category: <strong>{{ program.category.name }}</strong><br>
+        <strong>Date:</strong> {% now "F d, Y H:i A" %}<br>
+        Total Participants: <strong>{{ participants.count }}</strong><br>
+        {% if is_team_user %}Team: <strong>{{ team_name }}</strong><br>{% endif %}
+        Venue: _________________________ &nbsp;&nbsp; Time: _________________________
+    </div>
+
+
+    {% if participants %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Call #</th>
+                    <th style="width: 15%;">Chest No</th>
+                    <th style="width: 30%;">Participant Name</th>
+                    <th style="width: 20%;">Team</th>
+                    <th style="width: 15%;">Time Slot</th>
+                    <th style="width: 10%;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for participant in participants %}
+                <tr>
+                    <td class="call-number">{{ forloop.counter }}</td>
+                    <td class="chest-no">{{ participant.chest_no }}</td>
+                    <td class="participant-name">{{ participant.name }}</td>
+                    <td class="team-name">{{ participant.team.name }}</td>
+                    <td class="time-slot">{{ participant.time|default:"____" }}</td>
+                    <td class="status"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No participants found.</p>
+    {% endif %}
+
+
+    <div class="footer">
+        Generated on {% now "F d, Y" %} &nbsp;{% now "h:i A" %} | Official Call List
+    </div>
+</body>
+</html>

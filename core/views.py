@@ -17,7 +17,33 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 User = get_user_model()
 
 def is_admin(user):
-    return user.is_superuser  # or use your custom check
+    return user.is_superuser or user.role == 'admin' # or use your custom check
+
+def face_page(request):
+    return render(request, 'face.html')
+
+@login_required
+@user_passes_test(is_admin)
+def lock_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    if user.role == 'team':   # only lock team role users
+        user.is_active = False
+        user.save()
+
+    return redirect('view_users')
+
+@login_required
+@user_passes_test(is_admin)
+def unlock_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    if user.role == 'team':   # only unlock team role users
+        user.is_active = True
+        user.save()
+
+    return redirect('view_users')
+
 
 # @login_required
 # def dashboard_admin(request):
@@ -30,7 +56,7 @@ def is_admin(user):
 def dashboard_admin(request):
     programs = Program.objects.all()
     teams = Team.objects.all()
-    pending_users = User.objects.filter(is_approved=False, is_superuser=False)
+    pending_users = User.objects.filter(is_approved=False)
     context = {
         'programs': programs,
         'teams': teams,
@@ -389,7 +415,7 @@ from .models import Category
 
 @login_required
 def add_category(request):
-    if request.user.role != 'admin':
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('dashboard_team')  # or wherever non-admins should go
 
     if request.method == 'POST':
@@ -445,7 +471,7 @@ from django.core.files.storage import FileSystemStorage
 
 @login_required
 def add_program(request):
-    if request.user.role != 'admin':
+    if not (request.user.is_superuser or request.user.role == 'admin'):
         return redirect('dashboard_team')
 
     categories = Category.objects.all()
@@ -559,6 +585,56 @@ def participant_list(request):
         'participants': participants,
         'selected_team_id': int(team_id) if team_id else None,
         'selected_category_id': int(category_id) if category_id else None
+    })
+
+@login_required
+def participants_by_category(request):
+    user = request.user
+    
+    # Get all categories and participants
+    categories = Category.objects.all().order_by('name')
+    participants = Contestant.objects.select_related('team', 'category').order_by('chest_no')
+    
+    # If the logged-in user is a team user, filter to only their team participants
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+    
+    # Group participants by category
+    participants_by_category = {}
+    for category in categories:
+        category_participants = participants.filter(category=category)
+        if category_participants.exists():
+            participants_by_category[category] = category_participants
+    
+    return render(request, 'participants_by_category.html', {
+        'participants_by_category': participants_by_category,
+        'total_participants': participants.count(),
+    })
+
+
+@login_required
+def participants_by_team(request):
+    user = request.user
+    
+    # Get all teams and participants
+    teams = Team.objects.all().order_by('name')
+    participants = Contestant.objects.select_related('team', 'category').order_by('chest_no')
+    
+    # If the logged-in user is a team user, show only their team
+    if hasattr(user, 'team'):
+        teams = Team.objects.filter(id=user.team.id)
+        participants = participants.filter(team=user.team)
+    
+    # Group participants by team
+    participants_by_team = {}
+    for team in teams:
+        team_participants = participants.filter(team=team)
+        if team_participants.exists():
+            participants_by_team[team] = team_participants
+    
+    return render(request, 'participants_by_team.html', {
+        'participants_by_team': participants_by_team,
+        'total_participants': participants.count(),
     })
 
 
@@ -1195,13 +1271,31 @@ from django.template.loader import get_template
 from xhtml2pdf import pisa
 from .models import Contestant
 
+@login_required
 def download_participants_pdf(request):
-    participants = Contestant.objects.all()
+    user = request.user
+    
+    # Get participants based on user role
+    participants = Contestant.objects.select_related('team', 'category').order_by('chest_no')
+    
+    # If the logged-in user is a team user, filter to only their team participants
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+        filename = f"{user.team.name}_participants.pdf"
+    else:
+        # Admin users can download all participants
+        filename = "all_participants.pdf"
+    
     template_path = 'pdf_template.html'
-    context = {'participants': participants}
+    context = {
+        'participants': participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
     
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="participants.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     template = get_template(template_path)
     html = template.render(context)
@@ -1212,3 +1306,277 @@ def download_participants_pdf(request):
     return response
 
 
+# Optional: Create separate PDF download functions for specific views
+@login_required
+def download_category_participants_pdf(request):
+    user = request.user
+    category_id = request.GET.get('category_id')
+    
+    participants = Contestant.objects.select_related('team', 'category').order_by('chest_no')
+    
+    # Filter by team if team user
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+    
+    # Filter by category if specified
+    if category_id:
+        participants = participants.filter(category_id=category_id)
+        try:
+            category = Category.objects.get(id=category_id)
+            filename = f"{category.name}_participants.pdf"
+        except Category.DoesNotExist:
+            filename = "category_participants.pdf"
+    else:
+        filename = "participants_by_category.pdf"
+    
+    template_path = 'pdf_template.html'
+    context = {
+        'participants': participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None,
+        'category_filter': category.name if category_id else None
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+@login_required
+def download_team_participants_pdf(request):
+    user = request.user
+    team_id = request.GET.get('team_id')
+    
+    participants = Contestant.objects.select_related('team', 'category').order_by('chest_no')
+    
+    # If team user, they can only download their own team
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+        filename = f"{user.team.name}_participants.pdf"
+    else:
+        # Admin can download specific team or all teams
+        if team_id:
+            participants = participants.filter(team_id=team_id)
+            try:
+                team = Team.objects.get(id=team_id)
+                filename = f"{team.name}_participants.pdf"
+            except Team.DoesNotExist:
+                filename = "team_participants.pdf"
+        else:
+            filename = "participants_by_team.pdf"
+    
+    template_path = 'pdf_template.html'
+    context = {
+        'participants': participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None,
+        'team_filter': team.name if team_id else None
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+@login_required
+def program_participants(request):
+    """Show participants for a specific program"""
+    user = request.user
+    program_id = request.GET.get('program_id')
+    
+    # Get all programs for the dropdown
+    programs = Program.objects.all().order_by('name')
+    participants = None
+    selected_program = None
+    
+    if program_id:
+        try:
+            selected_program = Program.objects.get(id=program_id)
+            participants = Contestant.objects.filter(
+                program=selected_program
+            ).select_related('team', 'category').order_by('chest_no')
+            
+            # If team user, filter to only their team participants
+            if hasattr(user, 'team'):
+                participants = participants.filter(team=user.team)
+                
+        except Program.DoesNotExist:
+            selected_program = None
+            participants = None
+    
+    return render(request, 'program_participants.html', {
+        'programs': programs,
+        'participants': participants,
+        'selected_program': selected_program,
+        'selected_program_id': int(program_id) if program_id else None,
+    })
+
+
+@login_required
+def download_green_room_pdf(request, program_id):
+    """Download Green Room Sign Sheet PDF"""
+    try:
+        program = Program.objects.get(id=program_id)
+    except Program.DoesNotExist:
+        return HttpResponse('Program not found', status=404)
+
+    user = request.user
+    participants = Contestant.objects.filter(
+        participation__program=program
+    ).select_related('team', 'category').order_by('chest_no')
+
+    # Filter by team if team user
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+        filename = f"{program.name}_{user.team.name}_green_room.pdf"
+    else:
+        filename = f"{program.name}_green_room.pdf"
+
+    template_path = 'green_room_pdf.html'
+    context = {
+        'program': program,
+        'participants': participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+@login_required
+def green_room_list(request, program_id):
+    """Show Green Room Sign Sheet as normal Django page (HTML table)"""
+    try:
+        program = Program.objects.get(id=program_id)
+    except Program.DoesNotExist:
+        return HttpResponse('Program not found', status=404)
+
+    user = request.user
+    participants = Contestant.objects.filter(
+        participation__program=program
+    ).select_related('team', 'category').order_by('chest_no')
+
+    # Filter if team user
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+
+    context = {
+        'program': program,
+        'participants': participants,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+    return render(request, 'green_room_list.html', context)
+
+
+
+@login_required
+def download_call_list_pdf(request, program_id):
+    """Download Call List PDF"""
+    try:
+        program = Program.objects.get(id=program_id)
+    except Program.DoesNotExist:
+        return HttpResponse('Program not found', status=404)
+    
+    user = request.user
+    participants = Contestant.objects.filter(
+         participation__program=program
+    ).select_related('team', 'category').order_by('chest_no')
+    
+    # Filter by team if team user
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+        filename = f"{program.name}_{user.team.name}_call_list.pdf"
+    else:
+        filename = f"{program.name}_call_list.pdf"
+    
+    template_path = 'call_list_pdf.html'
+    context = {
+        'program': program,
+        'participants': participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+@login_required
+def download_valuation_form_pdf(request, program_id):
+    """Download Valuation Form PDF"""
+    try:
+        program = Program.objects.get(id=program_id)
+    except Program.DoesNotExist:
+        return HttpResponse('Program not found', status=404)
+    
+    user = request.user
+    participants = Contestant.objects.filter(
+         participation__program=program
+    ).select_related('team', 'category').order_by('chest_no')
+    
+    # Filter by team if team user
+    if hasattr(user, 'team'):
+        participants = participants.filter(team=user.team)
+        filename = f"{program.name}_{user.team.name}_valuation.pdf"
+    else:
+        filename = f"{program.name}_valuation.pdf"
+    
+    template_path = 'valuation_form.html'
+    context = {
+        'program': program,
+        'participants': participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+def list_page(request):
+    return render(request, 'list_page.html')

@@ -1,0 +1,190 @@
+{% load static %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<div class="container mt-5">
+    <h2 class="mb-4">Program Participants</h2>
+    
+    <!-- Program Selection -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Select Program</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-8">
+                    <select name="program_id" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select a Program --</option>
+                        {% for program in programs %}
+                            <option value="{{ program.id }}" 
+                                    {% if program.id == selected_program_id %}selected{% endif %}>
+                                {{ program.name }} ({{ program.category.name }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Show Participants
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_program %}
+        <!-- Program Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">{{ selected_program.name }}</h5>
+                        <small>Category: {{ selected_program.category.name }}</small>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark fs-6">
+                            {{ participants.count }} participant{{ participants.count|pluralize }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if participants %}
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table id="programParticipantsTable" class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 15%;">Chest No</th>
+                                    <th style="width: 35%;">Name</th>
+                                    <th style="width: 25%;">Team</th>
+                                    <th style="width: 25%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for participant in participants %}
+                                    <tr>
+                                        <td><strong>{{ participant.chest_no }}</strong></td>
+                                        <td>{{ participant.name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ participant.team.name }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'edit_participant' participant.id %}" 
+                                                   class="btn btn-outline-warning">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <a href="{% url 'delete_participant' participant.id %}"
+                                                   class="btn btn-outline-danger"
+                                                   onclick="return confirm('Delete {{ participant.name }}?');">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- PDF Download Options -->
+                <div class="card-footer bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Download Forms:</h6>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'download_green_room_pdf' %}?program_id={{ selected_program.id }}" 
+                                   class="btn btn-success btn-sm">
+                                    <i class="fas fa-door-open"></i> Green Room
+                                </a>
+                                <a href="{% url 'download_call_list_pdf' %}?program_id={{ selected_program.id }}" 
+                                   class="btn btn-info btn-sm">
+                                    <i class="fas fa-list-ul"></i> Call List
+                                </a>
+                                <a href="{% url 'download_valuation_form_pdf' %}?program_id={{ selected_program.id }}" 
+                                   class="btn btn-warning btn-sm">
+                                    <i class="fas fa-clipboard-check"></i> Valuation
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card-body">
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle"></i> 
+                        No participants registered for this program
+                        {% if request.user.role == 'team' %} from your team{% endif %}.
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Action buttons -->
+    <div class="text-end mt-3">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParticipantModal">
+            <i class="fas fa-plus"></i> Add Participant
+        </button>
+        <a href="{% url 'participant_list' %}" class="btn btn-secondary">
+            <i class="fas fa-list"></i> All Participants
+        </a>
+    </div>
+
+    {% include 'add_participant.html' %}
+</div>
+
+<!-- Navigation -->
+<div class="mb-3 text-center mt-5">
+    {% if request.user.role == 'admin' %}
+        <a href="{% url 'dashboard_admin' %}" class="btn btn-outline-dark">
+            <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+        </a>
+    {% elif request.user.role == 'team' %}
+        <a href="{% url 'dashboard_team' %}" class="btn btn-outline-dark">
+            <i class="fas fa-tachometer-alt"></i> Team Dashboard
+        </a>
+    {% endif %}
+    <a href="{% url 'results' %}" class="btn btn-outline-primary">
+        <i class="fas fa-trophy"></i> Results
+    </a>
+    <a href="{% url 'leaderboard' %}" class="btn btn-outline-success">
+        <i class="fas fa-medal"></i> Leaderboard
+    </a>
+</div>
+
+<!-- jQuery (required for DataTables) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable if participants exist
+        if ($('#programParticipantsTable').length && $('#programParticipantsTable tbody tr').length > 0) {
+            $('#programParticipantsTable').DataTable({
+                "pageLength": 10,
+                "lengthMenu": [5, 10, 25, 50],
+                "ordering": true,
+                "searching": true,
+                "info": true,
+                "responsive": true,
+                "order": [[0, 'asc']], // Sort by chest number by default
+                "columnDefs": [
+                    { "orderable": false, "targets": 3 } // Disable sorting on Actions column
+                ]
+            });
+        }
+    });
+</script>

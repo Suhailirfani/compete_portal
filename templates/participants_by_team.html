@@ -1,0 +1,265 @@
+{% load static %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Participants by Team</h2>
+        <div class="badge bg-success fs-6">Total: {{ total_participants }} participants</div>
+    </div>
+    
+    <!-- Team cards layout -->
+    <div class="row">
+        {% for team, participants in participants_by_team.items %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100 team-card" data-team-id="{{ team.id }}">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users"></i> {{ team.name }}
+                        </h5>
+                        <span class="badge bg-light text-dark">{{ participants.count }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 team-table" data-team-id="{{ team.id }}">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">Chest No</th>
+                                        <th style="width: 45%;">Name</th>
+                                        <th style="width: 30%;">Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for participant in participants %}
+                                        <tr>
+                                            <td><strong>{{ participant.chest_no }}</strong></td>
+                                            <td>{{ participant.name }}</td>
+                                            <td>
+                                                <small class="badge bg-secondary">{{ participant.category.name }}</small>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-sm btn-outline-primary view-details-btn" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#teamModal-{{ team.id }}">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                            <small class="text-muted align-self-center">
+                                {{ participants.count }} participant{{ participants.count|pluralize }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Detail Modal -->
+            <div class="modal fade" id="teamModal-{{ team.id }}" tabindex="-1" aria-labelledby="teamModalLabel-{{ team.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="teamModalLabel-{{ team.id }}">
+                                {{ team.name }} - Detailed View
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped detailed-team-table" data-team-id="{{ team.id }}">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Chest No</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for participant in participants %}
+                                            <tr>
+                                                <td><strong>{{ participant.chest_no }}</strong></td>
+                                                <td>{{ participant.name }}</td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ participant.category.name }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a href="{% url 'edit_participant' participant.id %}" 
+                                                           class="btn btn-outline-warning">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <a href="{% url 'delete_participant' participant.id %}"
+                                                           class="btn btn-outline-danger"
+                                                           onclick="return confirm('Delete {{ participant.name }}?');">
+                                                            <i class="fas fa-trash"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle"></i> No participants found in any team.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Summary Statistics -->
+    {% if participants_by_team %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Team Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for team, participants in participants_by_team.items %}
+                                <div class="col-md-4 col-sm-6 mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{{ team.name }}:</span>
+                                        <strong>{{ participants.count }} participants</strong>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParticipantModal">
+                <i class="fas fa-plus"></i> Add Participant
+            </button>
+        </div>
+        <div>
+            <a href="{% url 'download_participants_pdf' %}" class="btn btn-danger">
+                <i class="fas fa-download"></i> Download PDF
+            </a>
+            <a href="{% url 'participant_list' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> All Participants
+            </a>
+            <a href="{% url 'participants_by_category' %}" class="btn btn-warning">
+                <i class="fas fa-tags"></i> By Category
+            </a>
+        </div>
+    </div>
+
+    {% include 'add_participant.html' %}
+</div>
+
+<!-- Navigation -->
+<div class="mb-3 text-center mt-5">
+    {% if request.user.role == 'admin' %}
+        <a href="{% url 'dashboard_admin' %}" class="btn btn-outline-dark">
+            <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+        </a>
+    {% elif request.user.role == 'team' %}
+        <a href="{% url 'dashboard_team' %}" class="btn btn-outline-dark">
+            <i class="fas fa-tachometer-alt"></i> Team Dashboard
+        </a>
+    {% endif %}
+    <a href="{% url 'results' %}" class="btn btn-outline-primary">
+        <i class="fas fa-trophy"></i> Results
+    </a>
+    <a href="{% url 'leaderboard' %}" class="btn btn-outline-success">
+        <i class="fas fa-medal"></i> Leaderboard
+    </a>
+</div>
+
+<!-- jQuery (required for DataTables) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable for detailed team tables in modals
+        $('.detailed-team-table').each(function() {
+            if ($(this).find('tbody tr').length > 0) {
+                $(this).DataTable({
+                    "pageLength": 10,
+                    "lengthMenu": [5, 10, 25, 50],
+                    "ordering": true,
+                    "searching": true,
+                    "info": true,
+                    "responsive": true,
+                    "order": [[0, 'asc']], // Sort by chest number by default
+                    "columnDefs": [
+                        { "orderable": false, "targets": 3 } // Disable sorting on Actions column
+                    ]
+                });
+            }
+        });
+
+        // Reinitialize DataTables when modal is shown
+        $('.modal').on('shown.bs.modal', function () {
+            var table = $(this).find('.detailed-team-table').DataTable();
+            if (table) {
+                table.columns.adjust().draw();
+            }
+        });
+
+        // Add hover effect to team cards
+        $('.team-card').hover(
+            function() {
+                $(this).addClass('shadow-lg').css('transform', 'translateY(-5px)');
+            },
+            function() {
+                $(this).removeClass('shadow-lg').css('transform', 'translateY(0)');
+            }
+        );
+    });
+</script>
+
+<style>
+    .team-card {
+        transition: all 0.3s ease;
+    }
+    
+    .team-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card-header {
+        position: relative;
+    }
+    
+    .badge {
+        font-size: 0.75em;
+    }
+    
+    @media (max-width: 768px) {
+        .team-card {
+            margin-bottom: 1rem;
+        }
+    }
+</style>

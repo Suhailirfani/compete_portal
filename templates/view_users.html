@@ -45,6 +45,15 @@
                     <a href="{% url 'edit_user' user.id %}" class="btn btn-sm btn-warning">Edit</a>
                     <a href="{% url 'delete_user' user.id %}" onclick="return confirm('Are you sure you want to delete this user?');" class="btn btn-sm btn-danger">Delete</a>
                 </td>
+                <td>
+                {% if user.role == 'team' %}
+                  {% if user.is_active %}
+                    <a href="{% url 'lock_user' user.id %}" class="btn btn-danger btn-sm">Lock</a>
+                  {% else %}
+                    <a href="{% url 'unlock_user' user.id %}" class="btn btn-success btn-sm">Unlock</a>
+                  {% endif %}
+                {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr>

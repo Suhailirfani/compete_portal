@@ -3,9 +3,12 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.landing_view, name='landing'),
+    path('', views.face_page, name='face_page'),
+    path('auth/', views.landing_view, name='landing'),
     path('signup', views.signup_view, name='signup'),
     path('logout/', views.custom_logout_view, name='logout'),
+    path('lock_user/<int:user_id>/', views.lock_user, name='lock_user'),
+    path('unlock_user/<int:user_id>/', views.unlock_user, name='unlock_user'),
     path('admin_dashboard/', views.dashboard_admin, name='dashboard_admin'),
     path('team_dashboard/', views.dashboard_team, name='dashboard_team'),
     path('add_contestant/', views.add_contestant, name='add_contestant'),
@@ -44,6 +47,14 @@ urlpatterns = [
     path('team_marks_summary/', views.team_marks_summary, name='team_marks_summary'),
     path('download/pdf/', views.download_participants_pdf, name='download_participants_pdf'),
     path('api/programs-by-category/', views.get_programs_by_category, name='programs_by_category'), 
+    path('participants/', views.participant_list, name='participant_list'),
+    path('participants/category/', views.participants_by_category, name='participants_by_category'),
+    path('participants/team/', views.participants_by_team, name='participants_by_team'),
+    path('download/pdf/green_room_sign/<int:program_id>/', views.download_green_room_pdf, name='green_room_sign'),
+    path('download/pdf/valuation_form/<int:program_id>/', views.download_valuation_form_pdf, name='valuation_form'),
+    path('download/pdf/call_list/<int:program_id>/', views.download_call_list_pdf, name='call_list'),
+    path('view/green_room/<int:program_id>/', views.green_room_list, name='green_room_list' )
+    # path('list_page/', views.list_page, name='list_page'),
 
 
 

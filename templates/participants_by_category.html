@@ -1,0 +1,170 @@
+{% load static %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Participants by Category</h2>
+        <div class="badge bg-primary fs-6">Total: {{ total_participants }} participants</div>
+    </div>
+    
+    <!-- Navigation tabs for quick jumping between categories -->
+    <ul class="nav nav-pills mb-4" id="categoryTabs" role="tablist">
+        {% for category, participants in participants_by_category.items %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                        id="category-{{ category.id }}-tab" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#category-{{ category.id }}" 
+                        type="button" 
+                        role="tab">
+                    {{ category.name }} <span class="badge bg-secondary ms-1">{{ participants.count }}</span>
+                </button>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="tab-content" id="categoryTabsContent">
+        {% for category, participants in participants_by_category.items %}
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                 id="category-{{ category.id }}" 
+                 role="tabpanel" 
+                 aria-labelledby="category-{{ category.id }}-tab">
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h4 class="mb-0">{{ category.name }} Category</h4>
+                        <small>{{ participants.count }} participant{{ participants.count|pluralize }}</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0 category-table" data-category-id="{{ category.id }}">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Chest No</th>
+                                        <th>Name</th>
+                                        <th>Team</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for participant in participants %}
+                                        <tr>
+                                            <td><strong>{{ participant.chest_no }}</strong></td>
+                                            <td>{{ participant.name }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ participant.team.name }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{% url 'edit_participant' participant.id %}" 
+                                                       class="btn btn-outline-warning">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a>
+                                                    <a href="{% url 'delete_participant' participant.id %}"
+                                                       class="btn btn-outline-danger"
+                                                       onclick="return confirm('Delete {{ participant.name }}?');">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i> No participants found in any category.
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Action buttons -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParticipantModal">
+                <i class="fas fa-plus"></i> Add Participant
+            </button>
+        </div>
+        <div>
+            <a href="{% url 'download_participants_pdf' %}" class="btn btn-danger">
+                <i class="fas fa-download"></i> Download PDF
+            </a>
+            <a href="{% url 'participant_list' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> All Participants
+            </a>
+            <a href="{% url 'participants_by_team' %}" class="btn btn-info">
+                <i class="fas fa-users"></i> By Team
+            </a>
+        </div>
+    </div>
+
+    {% include 'add_participant.html' %}
+</div>
+
+<!-- Navigation -->
+<div class="mb-3 text-center mt-5">
+    {% if request.user.role == 'admin' %}
+        <a href="{% url 'dashboard_admin' %}" class="btn btn-outline-dark">
+            <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+        </a>
+    {% elif request.user.role == 'team' %}
+        <a href="{% url 'dashboard_team' %}" class="btn btn-outline-dark">
+            <i class="fas fa-tachometer-alt"></i> Team Dashboard
+        </a>
+    {% endif %}
+    <a href="{% url 'results' %}" class="btn btn-outline-primary">
+        <i class="fas fa-trophy"></i> Results
+    </a>
+    <a href="{% url 'leaderboard' %}" class="btn btn-outline-success">
+        <i class="fas fa-medal"></i> Leaderboard
+    </a>
+</div>
+
+<!-- jQuery (required for DataTables) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable for each category table
+        $('.category-table').each(function() {
+            if ($(this).find('tbody tr').length > 0) {
+                $(this).DataTable({
+                    "pageLength": 10,
+                    "lengthMenu": [5, 10, 25, 50],
+                    "ordering": true,
+                    "searching": true,
+                    "info": true,
+                    "responsive": true,
+                    "order": [[0, 'asc']], // Sort by chest number by default
+                    "columnDefs": [
+                        { "orderable": false, "targets": 3 } // Disable sorting on Actions column
+                    ]
+                });
+            }
+        });
+
+        // Show active tab content on page load
+        $('a[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+            // Redraw DataTable when tab is shown (fixes display issues)
+            var targetId = $(e.target).attr('data-bs-target');
+            var table = $(targetId + ' .category-table').DataTable();
+            if (table) {
+                table.columns.adjust().draw();
+            }
+        });
+    });
+</script>

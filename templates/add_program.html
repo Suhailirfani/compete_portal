@@ -94,6 +94,10 @@
                         <a href="{% url 'edit_program' program.id %}" class="btn btn-sm btn-warning">Edit</a>
                         <a href="{% url 'delete_program' program.id %}" class="btn btn-sm btn-danger"
                            onclick="return confirm('Are you sure to delete this program?')">Delete</a>
+                        <a href="{% url 'green_room_list' program.id %}" class="btn btn-sm btn-warning">preview</a>
+                        <a href="{% url 'green_room_sign' program.id %}" class="btn btn-sm btn-warning">Greem Room Sign</a>
+                        <a href="{% url 'call_list' program.id %}" class="btn btn-sm btn-warning">Call List</a>
+                        <a href="{% url 'valuation_form' program.id %}" class="btn btn-sm btn-warning">Valuation Form</a>
                     </span>
                 </li>
             {% endfor %}
