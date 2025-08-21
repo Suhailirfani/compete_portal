@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-3">Add Group Program</h3>
+
+    <form id="groupProgramForm" method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="name" class="form-label">Program Name</label>
+            <input type="text" name="name" id="name" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="category" class="form-label">Category</label>
+            <select name="category" id="category" class="form-select" required>
+                <option value="">Select Category</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="max_members" class="form-label">Max Team Members</label>
+            <input type="number" name="max_members" id="max_members" class="form-control" min="2" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Program</button>
+    </form>
+
+    <div id="message" class="mt-3"></div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function(){
+        $("#groupProgramForm").submit(function(e){
+            e.preventDefault();
+            $.ajax({
+                url: "{% url 'add_group_program' %}",
+                method: "POST",
+                data: $(this).serialize(),
+                success: function(response){
+                    $("#message").html('<div class="alert alert-success">'+response.message+'</div>');
+                    $("#groupProgramForm")[0].reset();
+                },
+                error: function(xhr){
+                    $("#message").html('<div class="alert alert-danger">Error: '+xhr.responseText+'</div>');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

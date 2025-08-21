@@ -556,6 +556,75 @@ def delete_program(request, program_id):
     messages.success(request, "Program deleted successfully.")
     return redirect('add_program')
 
+@login_required
+def add_group_program(request):
+    if not (request.user.is_superuser or request.user.role == 'admin'):
+        return redirect('dashboard_team')
+
+    categories = Category.objects.all()
+    programs = Program.objects.filter(is_group=True).order_by('-id')
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        category_id = request.POST.get('category')
+
+        if name and category_id:
+            category = get_object_or_404(Category, id=category_id)
+            Program.objects.create(name=name, category=category, is_group=True)
+            messages.success(request, f"Group Program '{name}' added successfully.")
+            return redirect('add_group_program')
+        else:
+            messages.error(request, "All fields are required.")
+
+    return render(request, 'add_group_program.html', {'categories': categories, 'programs': programs})
+
+
+@login_required
+def assign_group_program(request):
+    if not (request.user.is_superuser or request.user.role == 'admin'):
+        return redirect('dashboard_team')
+
+    categories = Category.objects.all()
+
+    if request.method == 'POST':
+        program_id = request.POST.get('program')
+        participant_ids = request.POST.getlist('participants')
+
+        if len(participant_ids) > 5:
+            messages.error(request, "You can select a maximum of 5 participants.")
+            return redirect('assign_group_program')
+
+        program = get_object_or_404(Program, id=program_id)
+        for pid in participant_ids:
+            contestant = Contestant.objects.get(id=pid)
+            Participation.objects.create(contestant=contestant, program=program)
+
+        messages.success(request, "Participants assigned successfully.")
+        return redirect('assign_group_program')
+
+    return render(request, 'assign_group_program.html', {'categories': categories})
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+@csrf_exempt
+def get_group_programs(request):
+    category_id = request.POST.get('category_id')
+    programs = Program.objects.filter(category_id=category_id, is_group=True)
+    program_list = [{"id": p.id, "name": p.name} for p in programs]
+    return JsonResponse({"programs": program_list})
+
+@login_required
+@csrf_exempt
+def get_participants_by_category(request):
+    category_id = request.POST.get('category_id')
+    contestants = Contestant.objects.filter(category_id=category_id)
+    contestant_list = [{"id": c.id, "name": c.name} for c in contestants]
+    return JsonResponse({"contestants": contestant_list})
+
+
 from django.contrib.auth.decorators import login_required
 
 @login_required
@@ -744,22 +813,73 @@ from django.shortcuts import render, redirect
 from .forms import ParticipationForm
 from django.contrib.auth.decorators import login_required
 
+# views.py
+from django.http import JsonResponse
+from .models import Program, Participation
+
+def get_programs_for_contestant(request):
+    contestant_id = request.GET.get('contestant_id')
+    category_id = request.GET.get('category_id')
+
+    if not contestant_id or not category_id:
+        return JsonResponse({'programs': []})
+
+    # Get programs of selected category not already assigned
+    assigned_programs = Participation.objects.filter(
+        contestant_id=contestant_id
+    ).values_list('program_id', flat=True)
+
+    programs = Program.objects.filter(
+        category_id=category_id
+    ).exclude(id__in=assigned_programs)
+
+    return JsonResponse({
+        'programs': list(programs.values('id', 'name'))
+    })
+
+from django.http import JsonResponse
+from .models import Contestant
+
+def get_contestants(request):
+    team_id = request.GET.get('team_id')
+    category_id = request.GET.get('category_id')
+
+    contestants = Contestant.objects.filter(
+        team_id=team_id, category_id=category_id
+    ).values('id', 'name')
+
+    return JsonResponse({'contestants': list(contestants)})
+
+
 @login_required
-def assign_competition(request):
-    user = request.user
+@user_passes_test(is_admin)
+def assign_programs(request):
+    teams = Team.objects.all()
+    categories = Category.objects.all()
+    contestants = Contestant.objects.none()  # initially empty
 
     if request.method == 'POST':
-        form = ParticipationForm(request.POST, user=user)
-        if form.is_valid():
-            participation = form.save(commit=False)
-            if user.role == 'team':
-                participation.team = user.team  # Enforce team from user
-            participation.save()
-            return redirect('assign_competition')
-    else:
-        form = ParticipationForm(user=request.user)
+        contestant_id = request.POST.get('contestant')
+        selected_programs = request.POST.getlist('programs')
 
-    return render(request, 'assign_competition.html', {'form': form})
+        if len(selected_programs) > 5:
+            messages.error(request, "You can only select up to 5 programs.")
+        else:
+            for prog_id in selected_programs:
+                Participation.objects.get_or_create(
+                    contestant_id=contestant_id,
+                    program_id=prog_id
+                )
+            messages.success(request, "Programs assigned successfully!")
+            return redirect('assign_programs')
+
+    return render(request, 'assign_programs.html', {
+        'teams': teams,
+        'categories': categories,
+        'contestants': contestants,
+    })
+
+
 
 
 from django.shortcuts import render
@@ -816,6 +936,8 @@ from .forms import MarkEntryForm
 # Constants for point calculation
 POINTS_FOR_RANK = {1: 6, 2: 3, 3: 1}
 POINTS_FOR_GRADE = {'A': 6, 'B': 3, 'C': 1}
+POINTS_FOR_RANK_GROUP = {1: 15, 2: 10, 3: 5}
+POINTS_FOR_GRADE_GROUP = {'A': 15, 'B': 10, 'C': 5}
 
 def get_grade(marks):
     """Convert marks to grade"""
@@ -930,70 +1052,67 @@ def add_marks(request):
     
     return render(request, 'add_marks.html', context)
 
+def award_points_to_team(participant, total_points):
+    team = participant.contestant.team
+    team_points, _ = TeamPoints.objects.get_or_create(team=team, defaults={'points': 0})
+    team_points.points += total_points
+    team_points.save()
+
+    team.total_points += total_points
+    team.save()
+
+    participant.points_awarded = True
+
+
 def calculate_rankings_and_points(category_id, program_id):
     """
-    Calculate rankings and award points for a specific program in a category
+    Calculate rankings and award points for a specific program in a category.
+    Handles both individual and group programs.
     """
     try:
-        # Get all participants with marks for this program/category combination
+        # Get program instance to check if group or individual
+        program = Program.objects.get(id=program_id)
+        is_group_program = program.is_group  # <-- Ensure this field exists in Program model
+
         participants = Participation.objects.filter(
             contestant__category_id=category_id,
             program_id=program_id,
             marks__isnull=False
         ).select_related('contestant', 'contestant__team').order_by('-marks', 'contestant__chest_no')
-        
-        print(f"Calculating rankings for {participants.count()} participants")
-        
+
         # Reset all rankings first
         Participation.objects.filter(
             contestant__category_id=category_id,
             program_id=program_id
         ).update(rank=None, grade=None)
-        
-        # Calculate new rankings and grades
+
         for rank, participant in enumerate(participants, start=1):
-            # Set rank and grade
             participant.rank = rank
             participant.grade = get_grade(participant.marks)
-            
-            # Award points if not already awarded
+
             if not participant.points_awarded:
-                total_points = calculate_points(rank, participant.grade)
-                
+                total_points = calculate_points(rank, participant.grade, is_group_program)
                 if total_points > 0:
-                    # Award points to team
-                    team = participant.contestant.team
-                    team_points, created = TeamPoints.objects.get_or_create(
-                        team=team,
-                        defaults={'points': 0}
-                    )
-                    
-                    team_points.points += total_points
-                    team_points.save()
-                    
-                    # Update team's total points
-                    team.total_points += total_points
-                    team.save()
-                    
-                    # Mark points as awarded
-                    participant.points_awarded = True
-                    
-                    print(f"Awarded {total_points} points to {participant.contestant.name} (Rank: {rank}, Grade: {participant.grade})")
-            
-            # Save the participant with updated rank and grade
+                    award_points_to_team(participant, total_points)
             participant.save()
-            
+
     except Exception as e:
         print(f"Error in calculate_rankings_and_points: {e}")
         raise
 
-def calculate_points(rank, grade):
+
+def calculate_points(rank, grade, is_group=False):
     """
-    Calculate total points based on rank and grade
+    Calculate points based on whether program is group or individual.
     """
-    rank_points = POINTS_FOR_RANK.get(rank, 0)
-    grade_points = POINTS_FOR_GRADE.get(grade, 0) if grade else 0
+    if is_group:
+        rank_points = POINTS_FOR_RANK_GROUP.get(rank, 0)
+        grade_points = POINTS_FOR_GRADE_GROUP.get(grade, 0) if grade else 0
+    else:
+        rank_points = POINTS_FOR_RANK.get(rank, 0)
+        grade_points = POINTS_FOR_GRADE.get(grade, 0) if grade else 0
     return rank_points + grade_points
+
 
 # Optional: AJAX view for dynamic program loading
 @login_required

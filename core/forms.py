@@ -23,20 +23,20 @@ class TeamCategoryForm(forms.Form):
 # forms.py
 from django import forms
 from .models import Participation, Team, Category, Contestant, Program
-
-class ParticipationForm(forms.ModelForm):
+class ParticipationForm(forms.Form):
     team = forms.ModelChoiceField(queryset=Team.objects.all(), required=True)
     category = forms.ModelChoiceField(queryset=Category.objects.all(), required=True)
-
-    class Meta:
-        model = Participation
-        fields = ['team', 'category', 'contestant', 'program']
+    contestant = forms.ModelChoiceField(queryset=Contestant.objects.none(), required=True)
+    programs = forms.ModelMultipleChoiceField(
+        queryset=Program.objects.none(),
+        widget=forms.CheckboxSelectMultiple,  # You can use SelectMultiple if you prefer dropdown
+        required=True
+    )
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)  # 👈 Accept user from view
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        # 👇 Hide team field if user is team role
         if user and user.role == 'team':
             if hasattr(user, 'team'):
                 self.fields['team'].initial = user.team
@@ -44,10 +44,7 @@ class ParticipationForm(forms.ModelForm):
             else:
                 self.fields['team'].queryset = Team.objects.none()
 
-        # Initialize empty contestants and programs
-        self.fields['contestant'].queryset = Contestant.objects.none()
-        self.fields['program'].queryset = Program.objects.none()
-
+        # Load choices dynamically
         if 'team' in self.data and 'category' in self.data:
             try:
                 team_id = int(self.data.get('team'))
@@ -57,22 +54,12 @@ class ParticipationForm(forms.ModelForm):
                     team_id=team_id, category_id=category_id
                 ).order_by('name')
 
-                self.fields['program'].queryset = Program.objects.filter(
+                self.fields['programs'].queryset = Program.objects.filter(
                     category_id=category_id
                 ).order_by('name')
 
             except (ValueError, TypeError):
                 pass
-
-        elif self.instance.pk:
-            # Editing existing
-            self.fields['contestant'].queryset = Contestant.objects.filter(
-                team=self.instance.team, category=self.instance.category
-            )
-            self.fields['program'].queryset = Program.objects.filter(
-                category=self.instance.category
-            )
-
 
 
 from django.contrib.auth.models import User

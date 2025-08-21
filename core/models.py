@@ -32,7 +32,8 @@ class Category(models.Model):
 class Program(models.Model):
     name = models.CharField(max_length=100)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    
+    is_group = models.BooleanField(default=False, null=True)
+
     def __str__(self): return f"{self.name} - {self.category.name}"
 
 # ----------------- Contestant -----------------

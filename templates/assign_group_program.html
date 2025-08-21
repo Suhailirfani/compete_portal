@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Assign Group Program</h3>
+
+<form method="post" id="assignForm">
+  {% csrf_token %}
+
+  <label>Category:</label>
+  <select id="category" name="category">
+    <option value="">-- Select Category --</option>
+    {% for cat in categories %}
+      <option value="{{ cat.id }}">{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+
+  <br><br>
+
+  <label>Program:</label>
+  <select id="program" name="program">
+    <option value="">-- Select Program --</option>
+  </select>
+
+  <br><br>
+
+  <label>Participants:</label><br>
+  <div id="participants"></div>
+
+  <br>
+  <button type="submit">Assign</button>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function(){
+  $('#category').change(function(){
+    var categoryId = $(this).val();
+    if(categoryId){
+      // Fetch programs
+      $.post("{% url 'get_group_programs' %}", {
+        'csrfmiddlewaretoken': '{{ csrf_token }}',
+        'category_id': categoryId
+      }, function(response){
+        $('#program').empty().append('<option value="">-- Select Program --</option>');
+        response.programs.forEach(function(prog){
+          $('#program').append('<option value="'+prog.id+'">'+prog.name+'</option>');
+        });
+      });
+
+      // Fetch participants
+      $.post("{% url 'get_participants_by_category' %}", {
+        'csrfmiddlewaretoken': '{{ csrf_token }}',
+        'category_id': categoryId
+      }, function(response){
+        $('#participants').empty();
+        response.contestants.forEach(function(cont){
+          $('#participants').append(
+            '<input type="checkbox" name="participants" value="'+cont.id+'" class="participantBox"> '+cont.name+'<br>'
+          );
+        });
+      });
+    }
+  });
+
+  // Limit 5 participants
+  $(document).on('change', '.participantBox', function(){
+    if($('.participantBox:checked').length > 5){
+      alert("Maximum 5 participants can be selected.");
+      this.checked = false;
+    }
+  });
+});
+</script>
+{% endblock %}

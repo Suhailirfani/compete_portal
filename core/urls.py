@@ -12,7 +12,14 @@ urlpatterns = [
     path('admin_dashboard/', views.dashboard_admin, name='dashboard_admin'),
     path('team_dashboard/', views.dashboard_team, name='dashboard_team'),
     path('add_contestant/', views.add_contestant, name='add_contestant'),
-    path('assign_competition/', views.assign_competition, name='assign_competition'),
+    # path('assign_competition/', views.assign_competition, name='assign_competition'),
+    path('assign/', views.assign_programs, name='assign_programs'),
+    path('get-programs/', views.get_programs_for_contestant, name='get_programs_for_contestant'),
+    path('get-contestants/', views.get_contestants, name='get_contestants'),
+    path('add-group-program/', views.add_group_program, name='add_group_program'),
+    path('assign-group-program/', views.assign_group_program, name='assign_group_program'),
+    path('ajax/get-group-programs/', views.get_group_programs, name='get_group_programs'),
+    path('ajax/get-participants/', views.get_participants_by_category, name='get_participants_by_category'),
     path('enter_marks_summary/', views.enter_marks_summary, name='enter_marks_summary'),
     path('results/', views.results_view, name='results'),
     path('export_excel/', views.export_excel, name='export_excel'),
@@ -53,7 +60,7 @@ urlpatterns = [
     path('download/pdf/green_room_sign/<int:program_id>/', views.download_green_room_pdf, name='green_room_sign'),
     path('download/pdf/valuation_form/<int:program_id>/', views.download_valuation_form_pdf, name='valuation_form'),
     path('download/pdf/call_list/<int:program_id>/', views.download_call_list_pdf, name='call_list'),
-    path('view/green_room/<int:program_id>/', views.green_room_list, name='green_room_list' )
+    path('view/green_room/<int:program_id>/', views.green_room_list, name='green_room_list' ),
     # path('list_page/', views.list_page, name='list_page'),
 
 
