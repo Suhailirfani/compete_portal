@@ -344,9 +344,43 @@
             }
             
             .stats {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(1, 1fr);
             }
         }
+                .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            color: #fff;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
+        }
+
 
         /* Animation delays */
         .fade-in:nth-child(1) { animation-delay: 0.1s; }
@@ -393,16 +427,16 @@
 
             <div class="stats glass fade-in">
                 <div class="stat-card">
-                    <span class="stat-number">50K+</span>
-                    <div class="stat-label">Active Competitors</div>
+                    <span class="stat-number">{{ programs|length }}</span>
+                    <div class="stat-label">Programs</div>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">1.2M+</span>
-                    <div class="stat-label">Competitions Held</div>
+                    <span class="stat-number">{{ teams|length }}</span>
+                    <div class="stat-label">Teams</div>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">$2M+</span>
-                    <div class="stat-label">Prizes Awarded</div>
+                    <span class="stat-number">{{ contestants|length}}</span>
+                    <div class="stat-label">Contestants</div>
                 </div>
             </div>
         </div>
@@ -414,14 +448,24 @@
         <div class="features-grid">
             <div class="feature-card glass fade-in">
                 <span class="feature-icon">🏆</span>
-                <h3>Real-Time Competitions</h3>
+                
                 <p>Participate in live competitions with instant scoring and dynamic leaderboards that update in real-time.</p>
             </div>
             <div class="feature-card glass fade-in">
-                <span class="feature-icon">📊</span>
-                <h3>Advanced Analytics</h3>
-                <p>Track your performance with detailed analytics, progress insights, and personalized improvement recommendations.</p>
-            </div>
+    <span class="feature-icon"><h3>How To Use This App</h3></span>
+    <div class="video-wrapper mt-3">
+        <iframe 
+            width="100%" 
+            height="200" 
+            src="https://www.youtube.com/embed/XdQWQAhnF8o?si=om2yq8kH07e7ASXO" 
+            title="YouTube video player" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            referrerpolicy="strict-origin-when-cross-origin" 
+            allowfullscreen>
+        </iframe>
+    </div>
+</div>
             <div class="feature-card glass fade-in">
                 <span class="feature-icon">🌍</span>
                 <h3>Global Community</h3>

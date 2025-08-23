@@ -82,6 +82,7 @@
 
     <!-- Existing Programs -->
     <h4>Existing Programs</h4>
+    <a href="{% url 'download_all_call_list' %}" class="btn btn-sm btn-warning">Download Full call list</a>
     {% regroup programs by category as grouped_programs %}
 
     {% for group in grouped_programs %}

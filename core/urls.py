@@ -61,6 +61,7 @@ urlpatterns = [
     path('download/pdf/valuation_form/<int:program_id>/', views.download_valuation_form_pdf, name='valuation_form'),
     path('download/pdf/call_list/<int:program_id>/', views.download_call_list_pdf, name='call_list'),
     path('view/green_room/<int:program_id>/', views.green_room_list, name='green_room_list' ),
+    path('download/pdf/all-call-list/', views.download_all_call_lists_pdf, name='download_all_call_list')
     # path('list_page/', views.list_page, name='list_page'),
 
 

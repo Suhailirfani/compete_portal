@@ -20,7 +20,15 @@ def is_admin(user):
     return user.is_superuser or user.role == 'admin' # or use your custom check
 
 def face_page(request):
-    return render(request, 'face.html')
+    programs = Program.objects.all()
+    teams = Team.objects.all()
+    contestants = Contestant.objects.all()
+    context = {
+        'programs': programs,
+        'teams': teams,
+        'contestants' : contestants
+    }
+    return render(request, 'face.html', context)
 
 @login_required
 @user_passes_test(is_admin)
@@ -852,7 +860,6 @@ def get_contestants(request):
 
 
 @login_required
-@user_passes_test(is_admin)
 def assign_programs(request):
     teams = Team.objects.all()
     categories = Category.objects.all()
@@ -878,9 +885,6 @@ def assign_programs(request):
         'categories': categories,
         'contestants': contestants,
     })
-
-
-
 
 from django.shortcuts import render
 from .models import Participation
@@ -923,10 +927,6 @@ def view_results(request):
 
 
 
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.forms import modelformset_factory
 from django.db import transaction
 from django.http import JsonResponse
@@ -1699,3 +1699,53 @@ def download_valuation_form_pdf(request, program_id):
 
 def list_page(request):
     return render(request, 'list_page.html')
+
+@login_required
+def download_all_call_lists_pdf(request):
+    """Download Call List PDF for all programs"""
+    user = request.user
+    
+    # Fetch all programs
+    programs = Program.objects.all().order_by('name')
+
+    # Collect participants for each program
+    program_participants = []
+    for program in programs:
+        participants = Contestant.objects.filter(
+            participation__program=program
+        ).select_related('team', 'category').order_by('chest_no')
+
+        # Filter by team if user is team-based
+        if hasattr(user, 'team'):
+            participants = participants.filter(team=user.team)
+
+        program_participants.append({
+            'program': program,
+            'participants': participants
+        })
+
+    # Prepare filename
+    if hasattr(user, 'team'):
+        filename = f"all_programs_{user.team.name}_call_list.pdf"
+    else:
+        filename = "all_programs_call_list.pdf"
+
+    # Render template
+    template_path = 'all_call_list_pdf.html'  # New template for all programs
+    context = {
+        'program_participants': program_participants,
+        'user': user,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
