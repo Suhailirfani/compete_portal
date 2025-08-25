@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            gap: 8mm;
+        }
+        
+        .card {
+            width: 200px;
+            min-height: 75mm;
+            border: 2.5px solid #000;
+            border-radius: 10px;
+            margin-bottom: 8mm;
+            padding: 8mm;
+            text-align: center;
+            page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5mm;
+            margin-bottom: 5mm;
+        }
+        
+        .card h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1.2;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .card-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .name {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 8mm 0;
+            text-transform: uppercase;
+            color: #2c3e50;
+            letter-spacing: 1px;
+            line-height: 1.1;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            word-break: break-word;
+        }
+        
+        .chest-no {
+            font-size: 36px;
+            color: #e74c3c; /* Solid color only */
+            font-weight: 900;
+            border: 3px solid #e74c3c;
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        
+        /* Ensure exactly 3 cards per row */
+        .card:nth-child(3n+1) {
+            clear: left;
+        }
+        
+        /* Print optimizations */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            
+            /* Force page break after every 9 cards (3 rows) */
+            .card:nth-child(9n) {
+                page-break-after: always;
+            }
+        }
+        
+        /* Responsive adjustments for different screen sizes during preview */
+        @media screen and (max-width: 210mm) {
+            .container {
+                gap: 4mm;
+            }
+            .card {
+                width: calc(33.333% - 3mm);
+                min-height: 70mm;
+                padding: 6mm;
+            }
+            .name {
+                font-size: 16px;
+            }
+            .chest-no {
+                font-size: 32px;
+            }
+        }
+        
+        /* Very small screens - stack cards */
+        @media screen and (max-width: 600px) {
+            .card {
+                width: 100%;
+                margin-bottom: 4mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <table style="width:100%; border-spacing:10px; ">
+    {% for i in contestants %}
+    {% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}
+        <div style="
+    background: url('/static/chest_card.png') no-repeat center center;
+    background-size: cover;
+    width: 300px;
+    height: 200px;
+    padding: 20px;
+    text-align: center;
+    ">
+        <td style="width:50%; border:1px solid black; border-radius:10px; text-align:center; padding:15px;">
+            <h3 style="color: blue;">HAYATHUL ISLAM MADRASA<br>MEELAD FEST</h3>
+            <p style="font-size:18px; font-weight:bold;">{{ i.name }}</p>
+            <p style="font-size:28px; font-weight:bold; color:red;">{{ i.chest_no }}</p>
+        </td>
+    </div>
+    {% if forloop.counter|divisibleby:2 %}</tr>{% endif %}
+    {% endfor %}
+</table>
+
+        
+
+    <!-- Django Template Version -->
+    <!--
+    <div class="container">
+        {% for i in contestants %}
+        <div class="card">
+            <div class="card-header">
+                <h2>HAYATHUL ISLAM MADRASA<br>MEELAD FEST</h2>
+            </div>
+            <div class="card-content">
+                <div class="name">{{ i.name }}</div>
+                <div class="chest-no">{{ i.chest_no }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    -->
+</body>
+</html>

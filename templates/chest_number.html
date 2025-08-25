@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <title>Chest Number Cards</title>
+    <style>
+        body {
+            font-family: 'Noto Sans Malayalam', sans-serif;
+            background: #f4f6f8;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 2px solid #2c3e50;
+        }
+
+        .card h3 {
+            margin: 5px 0;
+            color: #1a1a1a;
+        }
+
+        .card .chest-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+        td h3, td h5, td p {
+    margin: 2px 0;
+    line-height: 1.2;
+}
+    </style>
+</head>
+<body>
+
+    <div class="card-container">
+        {% for i in contestant %}
+        <div class="card">
+            <h3>HAYATHUL ISLAM MADRASA</h3>
+            <h3>MEELAD FEST</h3>
+            <p>{{ i.name|upper }}</p>
+            <div class="chest-number">{{ i.chest_no }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <a href="{% url 'download_chest_cards' %}" class="btn btn-primary">
+    Download as PDF
+</a>
+
+</body>
+</html>
+

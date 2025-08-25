@@ -659,6 +659,7 @@
             <div class="user-email">{{ user.email }}</div>
           </div>
           <a href="{% url 'approve_user' user.id %}" class="approve-btn">Approve ✅</a>
+          <a href="{% url 'disapprove_user' user.id %}" class="btn btn-danger btn-sm">Disapprove</a>
         </div>
         {% empty %}
         <div class="empty-state">

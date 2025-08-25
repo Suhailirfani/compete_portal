@@ -1,9 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+    {% load static %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CompeteHub - Where Champions Are Made</title>
+    <link rel="icon" type="image/png" href="{% static 'kubba.png' %}">
+    <!-- Malayalam fonts: Noto Sans Malayalam (clean) + Manjari (display) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <title>Meelad </title>
     <style>
         * {
             margin: 0;
@@ -143,6 +149,7 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            margin-top: 30px;
         }
 
         .hero p {
@@ -380,6 +387,69 @@
             border: none;
             border-radius: 12px;
         }
+        /* Malayalam typography helpers */
+        :root{
+        --ml-body: "Noto Sans Malayalam", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --ml-display: "Manjari", var(--ml-body);
+        }
+
+        /* Smooth edges on high-dpi */
+        html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+        /* Hero Malayalam line */
+        .malayalam-hero {
+        font-family: var(--ml-display);
+        font-weight: 700;
+        font-size: clamp(1.4rem, 5vw, 2.6rem);
+        line-height: 1.25;
+        letter-spacing: 0.2px;            /* gentle tracking for Malayalam */
+        color: #fff;
+        display: inline-block;
+        margin: .25rem 0 1rem;
+        position: relative;
+
+        /* classy gradient text */
+        background: linear-gradient(90deg, #fff, #ffe3f3, #ffd27e);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        /* subtle glow so it pops on dark bg */
+        text-shadow: 0 2px 24px rgba(255, 255, 255, 0.15);
+        }
+
+        /* Decorative underline ribbon */
+        .malayalam-hero::after{
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: -10px;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #f6d365, #fda085);
+        opacity: .9;
+        }
+
+        /* Secondary paragraph style (body Malayalam) */
+        .malayalam-body{
+        font-family: var(--ml-body);
+        font-size: clamp(1rem, 3.2vw, 1.25rem);
+        line-height: 1.7;
+        color: rgba(255,255,255,.92);
+        }
+
+        /* Optional glass pill label */
+        .ml-pill{
+        font-family: var(--ml-body);
+        display: inline-block;
+        padding: .45rem .9rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.25);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        font-weight: 600;
+        letter-spacing: .3px;
+        }
 
 
         /* Animation delays */
@@ -387,6 +457,7 @@
         .fade-in:nth-child(2) { animation-delay: 0.3s; }
         .fade-in:nth-child(3) { animation-delay: 0.5s; }
         .fade-in:nth-child(4) { animation-delay: 0.7s; }
+        .malayalam-hero.fade-in { animation-delay: .05s; }
     </style>
 </head>
 <body>
@@ -413,8 +484,8 @@
     <!-- Hero Section -->
     <section class="hero" id="home">
         <div class="hero-content">
-            <h1 class="fade-in">Where Champions Are Made</h1>
-            <p class="fade-in">Join the ultimate competition platform. Compete, excel, and rise to the top in challenges that matter.</p>
+            <h1 class="fade-in">Meelad Competition</h1>
+            <h4 class="malayalam-hero fade-in">പുണ്യ റബീഇന് സ്വാഗതം</h4>
             
             <div class="hero-buttons fade-in">
                 <a href="#register" class="btn btn-primary">
@@ -447,10 +518,9 @@
         <h2 class="section-title fade-in">Why Choose CompeteHub?</h2>
         <div class="features-grid">
             <div class="feature-card glass fade-in">
-                <span class="feature-icon">🏆</span>
-                
-                <p>Participate in live competitions with instant scoring and dynamic leaderboards that update in real-time.</p>
-            </div>
+                <span class="feature-icon">🏆 Leaderboard</span>
+                <a href="{% url 'leaderboard' %}" class="btn btn-primary">Leaderboard</a>
+               </div>
             <div class="feature-card glass fade-in">
     <span class="feature-icon"><h3>How To Use This App</h3></span>
     <div class="video-wrapper mt-3">

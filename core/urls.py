@@ -29,6 +29,7 @@ urlpatterns = [
     path('team/dashboard/', views.dashboard_team, name='team_dashboard'),
     path('pending-users/', views.pending_users, name='pending_users'),
     path('approve-user/<int:user_id>/', views.approve_user, name='approve_user'),
+    path('disapprove-user/<int:user_id>/', views.disapprove_user, name='disapprove_user'),
     path('users/', views.view_users, name='view_users'),
     path('users/delete/<int:user_id>/', views.delete_user, name='delete_user'),
     path('users/edit/<int:user_id>/', views.edit_user, name='edit_user'),
@@ -61,7 +62,11 @@ urlpatterns = [
     path('download/pdf/valuation_form/<int:program_id>/', views.download_valuation_form_pdf, name='valuation_form'),
     path('download/pdf/call_list/<int:program_id>/', views.download_call_list_pdf, name='call_list'),
     path('view/green_room/<int:program_id>/', views.green_room_list, name='green_room_list' ),
-    path('download/pdf/all-call-list/', views.download_all_call_lists_pdf, name='download_all_call_list')
+    path('download/pdf/all-call-list/', views.download_all_call_lists_pdf, name='download_all_call_list'),
+    path('chest_number/', views.chest_number, name='chest_number'),
+    # path('download-chest-cards/', views.download_chest_cards_pdf, name='download_chest_cards_pdf'),
+    path('download/chest-cards/', views.download_chest_cards_pdf, name='download_chest_cards'),
+
     # path('list_page/', views.list_page, name='list_page'),
 
 

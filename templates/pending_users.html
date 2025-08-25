@@ -34,6 +34,7 @@
             {{ user.email }}
         </div>
         <a href="{% url 'approve_user' user.id %}" class="btn btn-success">Approve ✅</a>
+        <a href="{% url 'disapprove_user' user.id %}" class="btn btn-danger btn-sm">Disapprove</a>
     </div>
     {% empty %}
     <p>No pending users 🎉</p>

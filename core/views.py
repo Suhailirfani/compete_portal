@@ -326,6 +326,10 @@ def signup_view(request):
         password = request.POST.get('password')
         role = request.POST.get('role')
 
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists. Choose another.")
+            return render(request, 'signup.html')
+
         user = User.objects.create_user(
             username=username,
             password=password,
@@ -348,7 +352,7 @@ def custom_logout_view(request):
 @login_required
 @user_passes_test(is_admin)
 def pending_users(request):
-    users = User.objects.filter(is_approved=False, is_superuser=False)
+    users = User.objects.filter(is_approved=False)
     return render(request, 'pending_users.html', {'users': users})
 
 @login_required
@@ -356,6 +360,14 @@ def pending_users(request):
 def approve_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     user.is_approved = True
+    user.save()
+    return redirect('pending_users')
+
+@login_required
+@user_passes_test(is_admin)
+def disapprove_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    user.is_approved = False
     user.save()
     return redirect('pending_users')
 
@@ -1216,7 +1228,7 @@ from django.db.models import Count, Q, Sum
 from .models import Team, TeamPoints, Participation
 
 
-@login_required
+
 def team_leaderboard(request):
     """Display team leaderboard with points breakdown"""
     
@@ -1748,4 +1760,36 @@ def download_all_call_lists_pdf(request):
     pisa_status = pisa.CreatePDF(html, dest=response)
     if pisa_status.err:
         return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+def chest_number(request):
+    contestant = Contestant.objects.all()
+
+    context = {
+        'contestant' : contestant
+    }
+    return render(request, 'chest_number.html', context)
+
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from .models import Contestant
+
+def download_chest_cards_pdf(request):
+    """Download Chest Cards PDF for all contestants"""
+    contestants = Contestant.objects.all().order_by('chest_no')
+
+    template_path = 'chest_cards_pdf.html'
+    context = {'contestants': contestants}
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="chest_cards.pdf"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Error while generating PDF <pre>' + html + '</pre>')
     return response
