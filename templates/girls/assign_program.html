@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Assign Programs</h3>
+
+    <form method="POST" class="mb-3">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Assign</button>
+    </form>
+
+    <h5>Assigned Programs</h5>
+    <ul class="list-group">
+        {% for p in participations %}
+            <li class="list-group-item">
+                {{ p.participant.name }} → {{ p.program.name }}
+            </li>
+        {% empty %}
+            <li class="list-group-item">No assignments yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+<script>
+document.getElementById('id_team').addEventListener('change', function () {
+    document.getElementById('assignment-form').submit();
+});
+document.getElementById('id_category').addEventListener('change', function () {
+    document.getElementById('assignment-form').submit();
+});
+</script>

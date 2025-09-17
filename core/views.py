@@ -2,17 +2,15 @@ from django.shortcuts import render
 
 # Create your views here.
 # competition_app/views.py
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import *
 from .forms import ContestantForm, ParticipationForm, TeamForm
 from .utils import get_grade, POINTS_FOR_RANK, POINTS_FOR_GRADE
 from django.db.models import Count, Sum
 from django.contrib.auth import logout
 # views.py
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
 
 User = get_user_model()
 
@@ -156,7 +154,7 @@ def enter_marks_summary(request):
                 p.rank = i
                 p.grade = get_grade(p.marks)
                 
-                if not p.points_awarded and p.grade:
+                if not p.points_awarded:
                     rank_points = POINTS_FOR_RANK.get(p.rank, 0)
                     grade_points = POINTS_FOR_GRADE.get(p.grade, 0)
                     total_points = rank_points + grade_points
@@ -243,10 +241,28 @@ def team_marks_summary(request):
 import xlwt
 from django.http import HttpResponse
 
+from django.db.models import F
+
 @login_required
 def results_view(request):
-    participations = Participation.objects.filter(marks__isnull=False).select_related('program', 'contestant', 'contestant__team')
+    # Fetch participations sorted by marks (highest first)
+    participations = (
+        Participation.objects.filter(marks__isnull=False)
+        .select_related('program', 'contestant', 'contestant__team')
+        .order_by('-marks')  # Sort by marks first
+    )
+
+    # Assign ranks with tie handling
+    current_rank = 0
+    last_marks = None
+    for index, p in enumerate(participations, start=1):
+        if p.marks != last_marks:
+            current_rank = index
+            last_marks = p.marks
+        p.rank = current_rank
+
     return render(request, 'results.html', {'participations': participations})
+
 
 @login_required
 def export_excel(request):
@@ -278,9 +294,7 @@ def leaderboard(request):
 
 
 from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 
 
 def landing_view(request):
@@ -298,7 +312,7 @@ def custom_login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            if not user.is_approved:
+            if not user.is_superuser and not user.is_approved:
                 messages.error(request, 'Account pending approval by admin.')
                 return redirect('login')
 
@@ -309,6 +323,8 @@ def custom_login_view(request):
                 return redirect('dashboard_admin')
             elif user.role == 'team':
                 return redirect('dashboard_team')
+            elif user.role == 'off_campus':
+                return redirect('dashboard_off_campus')
             else:
                 messages.error(request, 'Unknown role.')
                 return redirect('login')
@@ -372,7 +388,6 @@ def disapprove_user(request, user_id):
     return redirect('pending_users')
 
 from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.core.paginator import Paginator
@@ -380,7 +395,7 @@ from django.core.paginator import Paginator
 
 User = get_user_model()
 
-@staff_member_required
+@user_passes_test(is_admin)
 def view_users(request):
     query = request.GET.get('q')
     role = request.GET.get('role')
@@ -402,7 +417,7 @@ def view_users(request):
         'selected_role': role or '',
     })
 
-@staff_member_required
+@user_passes_test(is_admin)
 def delete_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
     user.delete()
@@ -411,7 +426,7 @@ def delete_user(request, user_id):
 
 from django.contrib import messages
 
-@staff_member_required
+@user_passes_test(is_admin)
 def edit_user(request, user_id):
     user = get_object_or_404(User, id=user_id)
 
@@ -615,9 +630,8 @@ def assign_group_program(request):
             return redirect('assign_group_program')
 
         program = get_object_or_404(Program, id=program_id)
-        for pid in participant_ids:
-            contestant = Contestant.objects.get(id=pid)
-            Participation.objects.create(contestant=contestant, program=program)
+        group_participation = GroupParticipation.objects.create(program=program)
+        group_participation.contestants.set(participant_ids) 
 
         messages.success(request, "Participants assigned successfully.")
         return redirect('assign_group_program')
@@ -644,8 +658,6 @@ def get_participants_by_category(request):
     contestant_list = [{"id": c.id, "name": c.name} for c in contestants]
     return JsonResponse({"contestants": contestant_list})
 
-
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def participant_list(request):
@@ -729,7 +741,6 @@ def participants_by_team(request):
 
 import pandas as pd
 from django.contrib import messages
-from django.shortcuts import render, redirect
 from .forms import ContestantForm
 from .models import Contestant, Team, Category
 
@@ -829,13 +840,11 @@ def delete_team(request, team_id):
 
 
 # views.py
-from django.shortcuts import render, redirect
 from .forms import ParticipationForm
-from django.contrib.auth.decorators import login_required
 
 # views.py
 from django.http import JsonResponse
-from .models import Program, Participation
+from .models import Program, Participation, Contestant, Category
 
 def get_programs_for_contestant(request):
     contestant_id = request.GET.get('contestant_id')
@@ -844,38 +853,102 @@ def get_programs_for_contestant(request):
     if not contestant_id or not category_id:
         return JsonResponse({'programs': []})
 
-    # Get programs of selected category not already assigned
+    # programs already assigned to contestant
     assigned_programs = Participation.objects.filter(
         contestant_id=contestant_id
     ).values_list('program_id', flat=True)
 
+    try:
+        contestant = Contestant.objects.get(id=contestant_id)
+        selected_category = Category.objects.get(id=category_id)
+    except (Contestant.DoesNotExist, Category.DoesNotExist):
+        return JsonResponse({'programs': []})
+
+    # Logic: contestant category + general
+    if contestant.category.name.lower() == "junior":
+        categories_to_include = ["Junior", "General"]
+    elif contestant.category.name.lower() == "senior":
+        categories_to_include = ["Senior", "General"]
+    else:  # if contestant is General (rare case)
+        categories_to_include = ["General"]
+
     programs = Program.objects.filter(
-        category_id=category_id
+        category__name__in=categories_to_include
     ).exclude(id__in=assigned_programs)
 
     return JsonResponse({
         'programs': list(programs.values('id', 'name'))
     })
 
+
+
+
 from django.http import JsonResponse
-from .models import Contestant
+from .models import Contestant, Category
 
 def get_contestants(request):
     team_id = request.GET.get('team_id')
     category_id = request.GET.get('category_id')
 
-    contestants = Contestant.objects.filter(
-        team_id=team_id, category_id=category_id
-    ).values('id', 'name')
+    contestants = Contestant.objects.none()
 
-    return JsonResponse({'contestants': list(contestants)})
+    if team_id and category_id:
+        try:
+            category = Category.objects.get(id=category_id)
+
+            if category.name.lower() == "general":
+                # Fetch contestants from Junior + Senior
+                contestants = Contestant.objects.filter(
+                    team_id=team_id,
+                    category__name__in=["JUNIOR", "SENIOR"]
+                )
+            else:
+                # Fetch contestants only in that category
+                contestants = Contestant.objects.filter(
+                    team_id=team_id,
+                    category=category
+                )
+        except Category.DoesNotExist:
+            pass
+
+    return JsonResponse({
+        'contestants': list(contestants.values('id', 'name'))
+    })
+
 
 
 @login_required
 def assign_programs(request):
     teams = Team.objects.all()
     categories = Category.objects.all()
-    contestants = Contestant.objects.none()  # initially empty
+
+    contestants = Contestant.objects.none()
+    programs = Program.objects.none()
+
+    team_id = request.GET.get('team')
+    category_id = request.GET.get('category')
+
+    if team_id and category_id:
+        try:
+            selected_category = Category.objects.get(id=category_id)
+
+            if selected_category.name.lower() == "general":
+                # contestants from Junior + Senior
+                contestants = Contestant.objects.filter(
+                    team_id=team_id,
+                    category__name__in=["JUNIOR", "SENIOR", "SUBJUNIOR"]
+                )
+                # programs only from General
+                programs = Program.objects.filter(category=selected_category)
+            else:
+                contestants = Contestant.objects.filter(
+                    team_id=team_id,
+                    category=selected_category
+                )
+                programs = Program.objects.filter(category=selected_category)
+
+        except Category.DoesNotExist:
+            pass
 
     if request.method == 'POST':
         contestant_id = request.POST.get('contestant')
@@ -896,6 +969,43 @@ def assign_programs(request):
         'teams': teams,
         'categories': categories,
         'contestants': contestants,
+        'programs': programs,
+    })
+
+
+@login_required
+def edit_assigned_programs(request, contestant_id):
+    contestant = get_object_or_404(Contestant, id=contestant_id)
+    all_programs = Program.objects.all()
+    assigned_program_ids = Participation.objects.filter(
+        contestant=contestant
+    ).values_list('program_id', flat=True)
+
+    if request.method == 'POST':
+        selected_programs = request.POST.getlist('programs')
+
+        if len(selected_programs) > 5:
+            messages.error(request, "You can only select up to 5 programs.")
+        else:
+            # Remove programs not selected anymore
+            Participation.objects.filter(
+                contestant=contestant
+            ).exclude(program_id__in=selected_programs).delete()
+
+            # Add newly selected programs
+            for prog_id in selected_programs:
+                Participation.objects.get_or_create(
+                    contestant=contestant,
+                    program_id=prog_id
+                )
+
+            messages.success(request, "Programs updated successfully!")
+            return redirect('assign_programs')  # or contestant list page
+
+    return render(request, 'edit_assigned_programs.html', {
+        'contestant': contestant,
+        'all_programs': all_programs,
+        'assigned_program_ids': list(assigned_program_ids),
     })
 
 from django.shortcuts import render
@@ -903,15 +1013,16 @@ from .models import Participation
 from django.shortcuts import render
 from .models import Participation, Team, Category
 
+@login_required
 def view_assigned_programs(request):
     team_id = request.GET.get('team')
     category_id = request.GET.get('category')
 
     participations = Participation.objects.select_related(
-        'contestant__team', 'contestant__category', 'program'
+        'contestant__team', 'contestant__category', 'program__category'
     )
 
-    # 👇 Force filter by team if user is a team user
+    # Force filter by team if user is a team user
     if hasattr(request.user, 'team'):
         team_id = request.user.team.id
         participations = participations.filter(contestant__team_id=team_id)
@@ -919,7 +1030,9 @@ def view_assigned_programs(request):
         participations = participations.filter(contestant__team_id=team_id)
 
     if category_id:
-        participations = participations.filter(contestant__category_id=category_id)
+        participations = participations.filter(
+            Q(contestant__category_id=category_id) | Q(program__category_id=category_id)
+        )
 
     context = {
         'participations': participations.order_by('contestant__team__name'),
@@ -928,14 +1041,87 @@ def view_assigned_programs(request):
         'selected_team': int(team_id) if team_id else '',
         'selected_category': int(category_id) if category_id else '',
     }
-
     return render(request, 'assigned_programs.html', context)
 
 
+@login_required
+def delete_assigned_program(request, participation_id):
+    participation = get_object_or_404(Participation, id=participation_id)
+    participation.delete()
+    messages.success(request, "Program assignment removed successfully.")
+    return redirect('assigned_programs')  # redirect to the list view
+
+
+
+
+from django.shortcuts import render
+from core.models import Participation, Program
 
 def view_results(request):
-    results = Participation.objects.exclude(marks__isnull=True).order_by('rank')
-    return render(request, 'view_results.html', {'results': results})
+    # fetch programs with results
+    programs = Program.objects.filter(participation__marks__isnull=False).distinct()
+
+    program_results = []
+    for program in programs:
+        results = (
+            Participation.objects
+            .filter(program=program, marks__isnull=False)
+            .order_by('rank')
+        )
+
+         # Add calculated points for display
+        for p in results:
+            if p.points_awarded:
+                rank_points = POINTS_FOR_RANK.get(p.rank, 0)
+                grade_points = POINTS_FOR_GRADE.get(p.grade, 0) if p.grade else 0
+                p.total_points = rank_points + grade_points
+                p.rank_points = rank_points
+                p.grade_points = grade_points
+            else:
+                p.total_points = 0
+                p.rank_points = 0
+                p.grade_points = 0
+
+        program_results.append({
+            'program': program,
+            'results': results,
+            'program_total_points': sum(p.total_points for p in results)
+        })
+
+        
+
+    return render(request, 'view_results.html', {'program_results': program_results})
+
+from django.template.loader import get_template
+from django.http import HttpResponse
+from xhtml2pdf import pisa
+
+def render_to_pdf(template_src, context_dict={}):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    response = HttpResponse(content_type='application/pdf')
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+def results_pdf(request):
+    programs = Program.objects.filter(participation__marks__isnull=False).distinct()
+
+    program_results = []
+    for program in programs:
+        results = (
+            Participation.objects
+            .filter(program=program, marks__isnull=False)
+            .order_by('rank')
+        )
+        program_results.append({
+            'program': program,
+            'results': results
+        })
+
+    context = {'program_results': program_results}
+    return render_to_pdf('results_pdf.html', context)
 
 
 
@@ -965,19 +1151,16 @@ def get_grade(marks):
 
 @login_required
 def add_marks(request):
-    # Check if user is admin
     if request.user.role != 'admin':
         messages.error(request, 'You do not have permission to access this page.')
         return redirect('dashboard_team')
-    
-    # Get filter parameters
+
     category_id = request.GET.get('category')
     program_id = request.GET.get('program')
-    
-    # Get all categories for dropdown
+
     categories = Category.objects.all().order_by('name')
-    
-    # Filter programs based on selected category
+
+    # Programs dropdown
     programs = Program.objects.none()
     if category_id:
         try:
@@ -985,74 +1168,49 @@ def add_marks(request):
             programs = Program.objects.filter(category_id=category_id).order_by('name')
         except (ValueError, TypeError):
             category_id = None
-    
-    # Get participations based on filters
+
+    # Participations
     participations = Participation.objects.none()
-    if category_id and program_id:
+    if program_id:
         try:
             program_id = int(program_id)
             participations = Participation.objects.filter(
-                contestant__category_id=category_id,
                 program_id=program_id
             ).select_related(
-                'contestant', 
-                'contestant__team', 
+                'contestant',
+                'contestant__team',
+                'contestant__category',
                 'program'
             ).order_by('contestant__chest_no')
         except (ValueError, TypeError):
             program_id = None
-    
-    # Create formset
+
     ParticipationFormSet = modelformset_factory(
         Participation,
         form=MarkEntryForm,
         extra=0,
         can_delete=False
     )
-    
-    # Handle form submission
+
     if request.method == 'POST':
         formset = ParticipationFormSet(request.POST, queryset=participations)
-        
         if formset.is_valid():
-            try:
-                with transaction.atomic():
-                    # Save all forms in the formset
-                    instances = formset.save(commit=False)
-                    saved_count = 0
-                    
-                    for instance in instances:
-                        if instance.marks is not None:
-                            instance.save()
-                            saved_count += 1
-                    
-                    # Calculate rankings and assign points
-                    if saved_count > 0:
-                        calculate_rankings_and_points(category_id, program_id)
-                    
-                    messages.success(request, f'Successfully saved marks for {saved_count} participants!')
-                    
-                    # Redirect to same page with filters to show updated data
-                    return redirect(f"{request.path}?category={category_id}&program={program_id}")
-                    
-            except Exception as e:
-                messages.error(request, f'Error saving marks: {str(e)}')
-                print(f"Error in add_marks: {e}")
-                import traceback
-                traceback.print_exc()
+            with transaction.atomic():
+                instances = formset.save(commit=False)
+                saved_count = 0
+                for instance in instances:
+                    if instance.marks is not None:
+                        instance.save()
+                        saved_count += 1
+                if saved_count > 0 and category_id and program_id:
+                    calculate_rankings_and_points(category_id, program_id)
+                messages.success(request, f'Successfully saved marks for {saved_count} participants!')
+            return redirect(f"{request.path}?category={category_id}&program={program_id}")
         else:
-            # Handle form errors
             messages.error(request, 'Please correct the errors below.')
-            for i, form in enumerate(formset):
-                if form.errors:
-                    for field, errors in form.errors.items():
-                        for error in errors:
-                            messages.error(request, f'Row {i+1} - {field}: {error}')
     else:
-        # GET request - initialize empty formset
         formset = ParticipationFormSet(queryset=participations)
-    
-    # Prepare context
+
     context = {
         'categories': categories,
         'programs': programs,
@@ -1061,8 +1219,52 @@ def add_marks(request):
         'selected_program': str(program_id) if program_id else '',
         'participations': participations,
     }
-    
     return render(request, 'add_marks.html', context)
+
+@login_required
+def undo_points(request, participation_id):
+    if request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('dashboard_team')
+
+    try:
+        participation = Participation.objects.select_related(
+            'contestant__team', 'program'
+        ).get(id=participation_id)
+
+        if not participation.points_awarded:
+            messages.warning(request, "Points were not awarded for this participant.")
+            return redirect('add_marks')  # you can also redirect back with query params
+
+        # calculate total points that were awarded
+        from .utils import POINTS_FOR_RANK, POINTS_FOR_GRADE, get_grade  # adjust import if needed
+
+        rank_points = POINTS_FOR_RANK.get(participation.rank, 0)
+        grade_points = POINTS_FOR_GRADE.get(participation.grade, 0)
+        total_points = rank_points + grade_points
+
+        # deduct from team
+        team = participation.contestant.team
+        team_points, _ = TeamPoints.objects.get_or_create(team=team)
+        team_points.points = max(0, team_points.points - total_points)
+        team_points.save()
+
+        # reset participant fields
+        participation.rank = None
+        participation.grade = None
+        participation.points_awarded = False
+        participation.save()
+
+        messages.success(request, f"✅ Points for {participation.contestant.name} in {participation.program.name} have been undone.")
+
+    except Participation.DoesNotExist:
+        messages.error(request, "Participation not found.")
+
+    return redirect(request.META.get('HTTP_REFERER', 'add_marks'))
+
+
+
+
 
 def award_points_to_team(participant, total_points):
     team = participant.contestant.team
@@ -1113,20 +1315,27 @@ def calculate_rankings_and_points(category_id, program_id):
         raise
 
 
-def calculate_points(rank, grade, is_group=False):
+def calculate_points(rank, grade, is_group=False, category_name=None):
     """
-    Calculate points based on whether program is group or individual.
+    Calculate points based on whether program is group or individual,
+    and handle special case for 'General' category.
     """
-    if is_group:
-        rank_points = POINTS_FOR_RANK_GROUP.get(rank, 0)
-        grade_points = POINTS_FOR_GRADE_GROUP.get(grade, 0) if grade else 0
+    if category_name == "General":
+        # General category point mapping
+        rank_points_map = {1: 10, 2: 6, 3: 3}
+        grade_points_map = {'A': 10, 'B': 6, 'C': 3}
     else:
-        rank_points = POINTS_FOR_RANK.get(rank, 0)
-        grade_points = POINTS_FOR_GRADE.get(grade, 0) if grade else 0
+        # Default point mapping
+        rank_points_map = POINTS_FOR_RANK_GROUP if is_group else POINTS_FOR_RANK
+        grade_points_map = POINTS_FOR_GRADE_GROUP if is_group else POINTS_FOR_GRADE
+
+    rank_points = rank_points_map.get(rank, 0)
+    grade_points = grade_points_map.get(grade, 0) if grade else 0
+
     return rank_points + grade_points
 
 
-# Optional: AJAX view for dynamic program loading
+
 @login_required
 def get_programs_by_category(request):
     """
@@ -1134,96 +1343,19 @@ def get_programs_by_category(request):
     """
     category_id = request.GET.get('category_id')
     programs = []
-    
+
     if category_id:
         try:
-            programs_qs = Program.objects.filter(category_id=int(category_id)).order_by('name')
+            programs_qs = Program.objects.filter(
+                category_id=int(category_id)
+            ).order_by('name')
             programs = [{'id': p.id, 'name': p.name} for p in programs_qs]
         except (ValueError, TypeError):
             pass
-    
+
     return JsonResponse({'programs': programs})
-    if request.user.role != 'admin':
-        return redirect('dashboard_team')
-
-    category_id = request.GET.get('category')
-    program_id = request.GET.get('program')
-
-    categories = Category.objects.all()
-    
-    # Filter programs based on selected category
-    if category_id:
-        programs = Program.objects.filter(category_id=category_id)
-    else:
-        programs = Program.objects.all()
-    
-    participations = Participation.objects.none()
-
-    if category_id and program_id:
-        participations = Participation.objects.filter(
-            contestant__category_id=category_id,
-            program_id=program_id
-        ).select_related('contestant', 'contestant__team', 'program').order_by('contestant__chest_no')
-
-    ParticipationFormSet = modelformset_factory(
-        Participation, form=MarkEntryForm, extra=0, can_delete=False
-    )
-
-    if request.method == 'POST':
-        formset = ParticipationFormSet(request.POST, queryset=participations)
-
-        if formset.is_valid():
-            formset.save()
-
-            # Re-fetch and recalculate rankings
-            updated_participants = Participation.objects.filter(
-                contestant__category_id=category_id,
-                program_id=program_id,
-                marks__isnull=False
-            ).order_by('-marks')
-
-            for i, participant in enumerate(updated_participants, start=1):
-                participant.rank = i
-                participant.grade = get_grade(participant.marks)
-
-                if not participant.points_awarded and participant.grade:
-                    rank_points = POINTS_FOR_RANK.get(i, 0)
-                    grade_points = POINTS_FOR_GRADE.get(participant.grade, 0)
-                    total_points = rank_points + grade_points
-                    
-                    team = participant.contestant.team
-                    tp, _ = TeamPoints.objects.get_or_create(team=team)
-                    tp.points += total_points
-                    tp.save()
-
-                    participant.points_awarded = True
-
-                participant.save()
-
-            messages.success(request, f'Marks saved successfully for {updated_participants.count()} participants!')
-            return redirect(request.path + f"?category={category_id}&program={program_id}")
-        else:
-            # Add error message
-            messages.error(request, 'There were errors in the form. Please check and try again.')
-            print("Formset errors:", formset.errors)
-    else:
-        formset = ParticipationFormSet(queryset=participations)
-
-    return render(request, 'add_marks.html', {
-        'categories': categories,
-        'programs': programs,
-        'formset': formset,
-        'selected_category': category_id,
-        'selected_program': program_id,
-        'participations': participations,
-    })
 
 
-
-
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
 from .models import Team, TeamPoints, Participation
 
@@ -1771,6 +1903,133 @@ def chest_number(request):
     }
     return render(request, 'chest_number.html', context)
 
+@login_required
+def all_green_room_lists(request):
+    """Show Green Room List (sign sheet) for ALL programs as HTML"""
+    user = request.user
+
+    programs = Program.objects.all().select_related('category').order_by('category__name', 'name')
+    program_participants = []
+
+    for program in programs:
+        participants = Contestant.objects.filter(
+            participation__program=program
+        ).select_related('team', 'category').order_by('chest_no')
+
+        # Filter by team if user belongs to a team
+        if hasattr(user, 'team'):
+            participants = participants.filter(team=user.team)
+
+        program_participants.append({
+            'program': program,
+            'participants': participants
+        })
+
+    context = {
+        'program_participants': program_participants,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+    return render(request, 'all_green_room_list.html', context)
+
+@login_required
+def download_all_green_room_pdf(request):
+    """Download Green Room Lists for all programs as PDF"""
+    user = request.user
+
+    # Fetch programs ordered by category, then program name
+    programs = Program.objects.all().select_related('category').order_by('category__name', 'name')
+
+    program_participants = []
+    for program in programs:
+        participants = Contestant.objects.filter(
+            participation__program=program
+        ).select_related('team', 'category').order_by('chest_no')
+
+        # Filter by team if team user
+        if hasattr(user, 'team'):
+            participants = participants.filter(team=user.team)
+
+        program_participants.append({
+            'program': program,
+            'participants': participants
+        })
+
+    # Filename
+    if hasattr(user, 'team'):
+        filename = f"all_green_room_{user.team.name}.pdf"
+    else:
+        filename = "all_green_room.pdf"
+
+    # Render template
+    template_path = 'all_green_room_pdf.html'
+    context = {
+        'program_participants': program_participants,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    return response
+
+
+
+@login_required
+def download_all_valuation_forms_pdf(request):
+    """Download Valuation Form PDF for ALL programs"""
+    user = request.user
+
+    programs = Program.objects.all().order_by('name')
+    program_participants = []
+
+    for program in programs:
+        participants = Contestant.objects.filter(
+            participation__program=program
+        ).select_related('team', 'category').order_by('chest_no')
+
+        # Filter by team if user belongs to a team
+        if hasattr(user, 'team'):
+            participants = participants.filter(team=user.team)
+
+        program_participants.append({
+            'program': program,
+            'participants': participants
+        })
+
+    # File name
+    if hasattr(user, 'team'):
+        filename = f"all_programs_{user.team.name}_valuation.pdf"
+    else:
+        filename = "all_programs_valuation.pdf"
+
+    template_path = 'all_valuation_forms.html'  # New template
+    context = {
+        'program_participants': program_participants,
+        'is_team_user': hasattr(user, 'team'),
+        'team_name': user.team.name if hasattr(user, 'team') else None
+    }
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    template = get_template(template_path)
+    html = template.render(context)
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+
+    return response
+
+
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
@@ -1793,3 +2052,391 @@ def download_chest_cards_pdf(request):
     if pisa_status.err:
         return HttpResponse('Error while generating PDF <pre>' + html + '</pre>')
     return response
+
+
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+import io
+
+def assigned_programs_pdf(request):
+    team_id = request.GET.get('team')
+    category_id = request.GET.get('category')
+
+    participations = Participation.objects.all()
+    if team_id:
+        participations = participations.filter(contestant__team_id=team_id)
+    if category_id:
+        participations = participations.filter(contestant__category_id=category_id)
+
+    template_path = 'assigned_programs_pdf.html'
+    context = {
+        'participations': participations,
+    }
+
+    # Render HTML
+    template = get_template(template_path)
+    html = template.render(context)
+
+    # Create PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="assigned_programs.pdf"'
+    pisa.CreatePDF(io.BytesIO(html.encode("UTF-8")), dest=response, encoding='UTF-8')
+
+    return response
+
+
+from django.contrib import messages
+from django.db.models import Q
+from django.db import transaction
+from .models import (
+    Program, Contestant, Team, GroupParticipation, 
+    Participation, PointsConfig
+)
+
+# ----------------- Group Program Management -----------------
+
+def create_group_participation(request):
+    """Create a new group participation"""
+    if request.method == 'POST':
+        program_id = request.POST.get('program_id')
+        contestant_ids = request.POST.getlist('contestants')
+        group_name = request.POST.get('group_name', '')
+        
+        try:
+            with transaction.atomic():
+                program = get_object_or_404(Program, id=program_id, is_group=True)
+                
+                # Validate contestant count
+                if len(contestant_ids) < program.min_participants or len(contestant_ids) > program.max_participants:
+                    messages.error(request, 
+                        f"Number of participants must be between {program.min_participants} "
+                        f"and {program.max_participants}")
+                    return redirect('group_participation_form')
+                
+                # Get contestants and validate they're from the same team
+                contestants = Contestant.objects.filter(id__in=contestant_ids)
+                teams = set(c.team for c in contestants)
+                
+                if len(teams) > 1:
+                    messages.error(request, "All contestants must be from the same team")
+                    return redirect('group_participation_form')
+                
+                team = list(teams)[0]
+                
+                # Check if this team already has a group for this program
+                existing_group = GroupParticipation.objects.filter(
+                    program=program, team=team
+                ).first()
+                
+                if existing_group:
+                    messages.error(request, f"Team {team.name} already has a group for {program.name}")
+                    return redirect('group_participation_form')
+                
+                # Create group participation
+                group_participation = GroupParticipation.objects.create(
+                    program=program,
+                    team=team,
+                    group_name=group_name
+                )
+                group_participation.contestants.set(contestants)
+                
+                messages.success(request, f"Group created successfully for {program.name}")
+                return redirect('group_participation_list')
+                
+        except Exception as e:
+            messages.error(request, f"Error creating group: {str(e)}")
+            return redirect('group_participation_form')
+    
+    # GET request - show form
+    programs = Program.objects.filter(is_group=True)
+    teams = Team.objects.all()
+    contestants = Contestant.objects.all().select_related('team')
+    
+    context = {
+        'programs': programs,
+        'teams': teams,
+        'contestants': contestants,
+    }
+    return render(request, 'group_participation_form.html', context)
+
+def group_participation_list(request):
+    """List all group participations"""
+    group_participations = GroupParticipation.objects.all().select_related(
+        'program', 'team'
+    ).prefetch_related('contestants')
+    
+    context = {
+        'group_participations': group_participations
+    }
+    return render(request, 'group_participation_list.html', context)
+
+def add_group_marks(request, group_id):
+    """Add marks to a group participation"""
+    group_participation = get_object_or_404(GroupParticipation, id=group_id)
+    
+    if request.method == 'POST':
+        marks = request.POST.get('marks')
+        
+        try:
+            marks = int(marks)
+            if marks < 0 or marks > 100:
+                messages.error(request, "Marks must be between 0 and 100")
+                return redirect('add_group_marks', group_id=group_id)
+            
+            group_participation.marks = marks
+            group_participation.save()
+            
+            # Calculate grade
+            calculate_group_grades_and_points()
+            
+            messages.success(request, f"Marks added successfully for {group_participation}")
+            return redirect('group_participation_list')
+            
+        except ValueError:
+            messages.error(request, "Please enter valid marks")
+            return redirect('add_group_marks', group_id=group_id)
+    
+    context = {
+        'group_participation': group_participation
+    }
+    return render(request, 'add_group_marks.html', context)
+
+# ----------------- Points Calculation Functions -----------------
+
+def calculate_group_grades_and_points():
+    """Calculate grades, ranks, and points for all group participations"""
+    config = PointsConfig.get_config()
+    
+    # Get all programs that have group participations with marks
+    programs_with_groups = Program.objects.filter(
+        groupparticipation__marks__isnull=False,
+        is_group=True
+    ).distinct()
+    
+    for program in programs_with_groups:
+        # Get all group participations for this program with marks
+        group_participations = GroupParticipation.objects.filter(
+            program=program,
+            marks__isnull=False
+        ).order_by('-marks')  # Order by marks descending
+        
+        # Calculate ranks
+        current_rank = 1
+        previous_marks = None
+        rank_increment = 1
+        
+        for i, group in enumerate(group_participations):
+            if previous_marks is not None and group.marks < previous_marks:
+                current_rank += rank_increment
+                rank_increment = 1
+            elif previous_marks is not None and group.marks == previous_marks:
+                rank_increment += 1
+            
+            group.rank = current_rank
+            previous_marks = group.marks
+            
+            # Calculate grade based on marks
+            if group.marks >= config.grade_a_threshold:
+                group.grade = 'A'
+            elif group.marks >= config.grade_b_threshold:
+                group.grade = 'B'
+            elif group.marks >= config.grade_c_threshold:
+                group.grade = 'C'
+            else:
+                group.grade = 'D'
+            
+            group.save()
+    
+    # Calculate and award points
+    award_group_points()
+
+def award_group_points():
+    """Award points to teams based on group participations"""
+    config = PointsConfig.get_config()
+    
+    # Reset points_awarded flag for recalculation
+    GroupParticipation.objects.filter(points_awarded=True).update(points_awarded=False)
+    
+    group_participations = GroupParticipation.objects.filter(
+        marks__isnull=False,
+        points_awarded=False
+    )
+    
+    for group in group_participations:
+        points = 0
+        
+        # Rank-based points
+        if group.rank == 1:
+            points += config.rank_1_points
+        elif group.rank == 2:
+            points += config.rank_2_points
+        elif group.rank == 3:
+            points += config.rank_3_points
+        
+        # Grade-based points
+        if group.grade == 'A':
+            points += config.grade_a_points
+        elif group.grade == 'B':
+            points += config.grade_b_points
+        elif group.grade == 'C':
+            points += config.grade_c_points
+        
+        # Add points to team
+        if points > 0:
+            group.team.total_points += points
+            group.team.save()
+            
+            # Mark as points awarded
+            group.points_awarded = True
+            group.save()
+
+def recalculate_all_team_points():
+    """Recalculate total points for all teams (both individual and group)"""
+    # Reset all team points
+    Team.objects.update(total_points=0)
+    
+    # Reset points awarded flags
+    Participation.objects.update(points_awarded=False)
+    GroupParticipation.objects.update(points_awarded=False)
+    
+    # Recalculate individual participations
+    calculate_individual_grades_and_points()  # You need to implement this
+    
+    # Recalculate group participations
+    calculate_group_grades_and_points()
+
+def calculate_individual_grades_and_points():
+    """Calculate grades, ranks, and points for individual participations"""
+    # This is your existing function for individual programs
+    # You should implement this similar to group calculation
+    config = PointsConfig.get_config()
+    
+    programs_with_individual = Program.objects.filter(
+        participation__marks__isnull=False,
+        is_group=False
+    ).distinct()
+    
+    for program in programs_with_individual:
+        participations = Participation.objects.filter(
+            program=program,
+            marks__isnull=False
+        ).order_by('-marks')
+        
+        # Similar ranking logic as group
+        current_rank = 1
+        previous_marks = None
+        rank_increment = 1
+        
+        for i, participation in enumerate(participations):
+            if previous_marks is not None and participation.marks < previous_marks:
+                current_rank += rank_increment
+                rank_increment = 1
+            elif previous_marks is not None and participation.marks == previous_marks:
+                rank_increment += 1
+            
+            participation.rank = current_rank
+            previous_marks = participation.marks
+            
+            # Calculate grade
+            if participation.marks >= config.grade_a_threshold:
+                participation.grade = 'A'
+            elif participation.marks >= config.grade_b_threshold:
+                participation.grade = 'B'
+            elif participation.marks >= config.grade_c_threshold:
+                participation.grade = 'C'
+            else:
+                participation.grade = 'D'
+            
+            participation.save()
+    
+    # Award individual points
+    award_individual_points()
+
+def award_individual_points():
+    """Award points to teams based on individual participations"""
+    config = PointsConfig.get_config()
+    
+    participations = Participation.objects.filter(
+        marks__isnull=False,
+        points_awarded=False
+    )
+    
+    for participation in participations:
+        points = 0
+        
+        # Rank-based points
+        if participation.rank == 1:
+            points += config.rank_1_points
+        elif participation.rank == 2:
+            points += config.rank_2_points
+        elif participation.rank == 3:
+            points += config.rank_3_points
+        
+        # Grade-based points
+        if participation.grade == 'A':
+            points += config.grade_a_points
+        elif participation.grade == 'B':
+            points += config.grade_b_points
+        elif participation.grade == 'C':
+            points += config.grade_c_points
+        
+        # Add points to contestant's team
+        if points > 0:
+            participation.contestant.team.total_points += points
+            participation.contestant.team.save()
+            
+            # Also add to contestant's individual points
+            participation.contestant.total_points += points
+            participation.contestant.save()
+            
+            # Mark as points awarded
+            participation.points_awarded = True
+            participation.save()
+
+# ----------------- Leaderboard Views -----------------
+
+def team_leaderboard(request):
+    """Display team leaderboard"""
+    teams = Team.objects.all().order_by('-total_points')
+    
+    context = {
+        'teams': teams
+    }
+    return render(request, 'competition/team_leaderboard.html', context)
+
+def program_results(request, program_id):
+    """Display results for a specific program (individual or group)"""
+    program = get_object_or_404(Program, id=program_id)
+    
+    if program.is_group:
+        results = GroupParticipation.objects.filter(
+            program=program,
+            marks__isnull=False
+        ).order_by('rank').select_related('team').prefetch_related('contestants')
+        template = 'competition/group_program_results.html'
+    else:
+        results = Participation.objects.filter(
+            program=program,
+            marks__isnull=False
+        ).order_by('rank').select_related('contestant', 'contestant__team')
+        template = 'competition/individual_program_results.html'
+    
+    context = {
+        'program': program,
+        'results': results
+    }
+    return render(request, template, context)
+
+# Additional view for recalculating points
+def recalculate_points_view(request):
+    """Manual recalculation of all points"""
+    if request.method == 'POST':
+        try:
+            from .views import recalculate_all_team_points
+            recalculate_all_team_points()
+            messages.success(request, "All team points have been recalculated successfully!")
+        except Exception as e:
+            messages.error(request, f"Error recalculating points: {str(e)}")
+    
+    return redirect('team_leaderboard')

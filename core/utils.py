@@ -10,3 +10,9 @@ def get_grade(marks):
 
 POINTS_FOR_RANK = {1: 5, 2: 3, 3: 1}
 POINTS_FOR_GRADE = {'A': 5, 'B': 3, 'C': 1}
+
+def get_filtered_queryset(model, gender=None):
+    qs = model.objects.all()
+    if gender:
+        qs = qs.filter(gender=gender)
+    return qs

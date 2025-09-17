@@ -6,7 +6,7 @@
   {% csrf_token %}
 
   <label>Category:</label>
-  <select id="category" name="category">
+  <select id="category" name="category" required>
     <option value="">-- Select Category --</option>
     {% for cat in categories %}
       <option value="{{ cat.id }}">{{ cat.name }}</option>
@@ -16,18 +16,58 @@
   <br><br>
 
   <label>Program:</label>
-  <select id="program" name="program">
+  <select id="program" name="program" required>
     <option value="">-- Select Program --</option>
   </select>
 
   <br><br>
 
-  <label>Participants:</label><br>
+  <label>Participants (max 5):</label><br>
   <div id="participants"></div>
 
   <br>
   <button type="submit">Assign</button>
 </form>
+
+<style>
+  form {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    margin: auto;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  label {
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+  }
+  select, button {
+    margin-top: 5px;
+    padding: 8px;
+    width: 100%;
+  }
+  #participants {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  button {
+    background: #034067;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #0466a3;
+  }
+</style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
@@ -66,6 +106,18 @@ $(document).ready(function(){
     if($('.participantBox:checked').length > 5){
       alert("Maximum 5 participants can be selected.");
       this.checked = false;
+    }
+  });
+
+  // Validate before submit
+  $('#assignForm').submit(function(e){
+    if ($('#program').val() === "") {
+      alert("Please select a program.");
+      e.preventDefault();
+    }
+    if ($('.participantBox:checked').length === 0) {
+      alert("Please select at least one participant.");
+      e.preventDefault();
     }
   });
 });

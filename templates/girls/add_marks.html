@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>🎯 Add Marks - Filter by Category & Program</h3>
+
+    <form method="get" class="row mb-4">
+        <div class="col-md-5">
+            <label>Category</label>
+            <select name="category" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Choose Category --</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label>Program</label>
+            <select name="program" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Choose Program --</option>
+                {% for program in programs %}
+                    <option value="{{ program.id }}" {% if selected_program == program.id|stringformat:"s" %}selected{% endif %}>{{ program.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary w-100">Go</button>
+        </div>
+    </form>
+
+    {% if grouped_data %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="table-responsive mt-4">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Chest No(s)</th>
+                    <th>Name(s)</th>
+                    <th>Team</th>
+                    <th>Marks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in grouped_data %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {% for m in row.members %}
+                                {{ m.contestant.chest_no }}<br>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for m in row.members %}
+                                {{ m.contestant.name }}<br>
+                            {% endfor %}
+                        </td>
+                        <td>{{ row.team.name }}</td>
+                        <td>
+                            {% if row.group_code %}
+                                <input type="number" name="marks_{{ row.group_code }}" value="{{ row.marks|default:'' }}" class="form-control">
+                            {% else %}
+                                <input type="number" name="marks_{{ row.members.0.id }}" value="{{ row.marks|default:'' }}" class="form-control">
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <button type="submit" class="btn btn-success">💾 Save Marks</button>
+    </form>
+    {% elif selected_category and selected_program %}
+        <div class="alert alert-warning mt-4">No participants found for this program in the selected category.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+{% for part in participations %}
+  {% if program.is_group %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ part.group_code }}</td>
+      <td>{{ part.contestant__team__name }}</td>
+      <td><input type="text" name="marks_{{ part.group_code }}" /></td>
+    </tr>
+  {% else %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ part.contestant.chest_no }}</td>
+      <td>{{ part.contestant.name }}</td>
+      <td>{{ part.contestant.team.name }}</td>
+      <td><input type="text" name="marks_{{ part.id }}" /></td>
+    </tr>
+  {% endif %}
+{% endfor %}

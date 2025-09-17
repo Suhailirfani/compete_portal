@@ -488,12 +488,16 @@
             <h4 class="malayalam-hero fade-in">പുണ്യ റബീഇന് സ്വാഗതം</h4>
             
             <div class="hero-buttons fade-in">
-                <a href="#register" class="btn btn-primary">
-                    🚀 Start Competing
+                <a href="{% url 'login' %}" class="btn btn-primary">
+                    🚀 Login
                 </a>
-                <a href="#learn-more" class="btn btn-secondary">
-                    📖 Learn More
-                </a>
+                {% if user.is_authenticated %}
+                    {% if user.role == 'admin' %}
+                        <a href="{% url 'dashboard_admin' %}" class="btn btn-secondary">Go to Dashboard</a>
+                    {% elif user.role == 'team' %}
+                        <a href="{% url 'dashboard_team' %}" class="btn btn-secondary">Go to Dashboard</a>
+                    {% endif %}
+                {% endif %}
             </div>
 
             <div class="stats glass fade-in">

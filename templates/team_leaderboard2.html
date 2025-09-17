@@ -1,0 +1,91 @@
+<!-- templates/competition/team_leaderboard.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Team Leaderboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f2f2f2; }
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffed4e); font-weight: bold; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #e8e8e8); font-weight: bold; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #deb887); font-weight: bold; }
+        .leaderboard-header { text-align: center; margin-bottom: 30px; }
+        .trophy { font-size: 2em; }
+        .points { font-size: 1.2em; font-weight: bold; color: #007bff; }
+        .btn { padding: 10px 20px; text-decoration: none; border-radius: 4px; color: white; background: #007bff; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="leaderboard-header">
+        <h1>🏆 Team Leaderboard 🏆</h1>
+        <p>Overall standings based on individual and group program performances</p>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'group_participation_list' %}" class="btn">Group Programs</a>
+        <a href="#" class="btn">Individual Programs</a>
+        <a href="#" class="btn">Recalculate Points</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Team Name</th>
+                <th>Total Points</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in teams %}
+                <tr class="{% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% endif %}">
+                    <td>
+                        {% if forloop.counter == 1 %}🥇
+                        {% elif forloop.counter == 2 %}🥈
+                        {% elif forloop.counter == 3 %}🥉
+                        {% else %}{{ forloop.counter }}{% endif %}
+                    </td>
+                    <td>{{ team.name }}</td>
+                    <td class="points">{{ team.total_points }} pts</td>
+                    <td>
+                        {% if team.total_points > 0 %}
+                            <span style="color: #28a745;">Active</span>
+                        {% else %}
+                            <span style="color: #6c757d;">No Points</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">No teams found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+        <h3>Points System</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4>Rank-based Points</h4>
+                <ul>
+                    <li>1st Place: 10 points</li>
+                    <li>2nd Place: 6 points</li>
+                    <li>3rd Place: 3 points</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Grade-based Points</h4>
+                <ul>
+                    <li>Grade A (80+): 10 points</li>
+                    <li>Grade B (70-79): 6 points</li>
+                    <li>Grade C (60-69): 3 points</li>
+                </ul>
+            </div>
+        </div>
+        <p><em>Note: Teams can earn both rank and grade points for each program. Points are awarded for both individual and group program participations.</em></p>
+    </div>
+</body>
+</html>

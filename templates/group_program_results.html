@@ -1,0 +1,81 @@
+<!-- templates/competition/group_program_results.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ program.name }} - Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f2f2f2; }
+        .rank-1 { background: #fff3cd; }
+        .rank-2 { background: #e2f3ff; }
+        .rank-3 { background: #f0f8e2; }
+        .btn { padding: 8px 16px; text-decoration: none; border-radius: 4px; color: white; background: #007bff; }
+        .program-header { background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .grade-badge { padding: 4px 8px; border-radius: 12px; font-weight: bold; }
+        .grade-a { background: #d4edda; color: #155724; }
+        .grade-b { background: #fff3cd; color: #856404; }
+        .grade-c { background: #cce5ff; color: #004085; }
+        .grade-d { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="program-header">
+        <h1>{{ program.name }} - Group Results</h1>
+        <p><strong>Category:</strong> {{ program.category.name }}</p>
+        <p><strong>Program Type:</strong> Group Program ({{ program.min_participants }}-{{ program.max_participants }} participants)</p>
+    </div>
+    
+    <a href="{% url 'group_participation_list' %}" class="btn">Back to Group List</a>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>Group Name</th>
+                <th>Contestants</th>
+                <th>Marks</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+                <tr class="{% if result.rank == 1 %}rank-1{% elif result.rank == 2 %}rank-2{% elif result.rank == 3 %}rank-3{% endif %}">
+                    <td>
+                        {% if result.rank == 1 %}🥇{% elif result.rank == 2 %}🥈{% elif result.rank == 3 %}🥉{% endif %}
+                        {{ result.rank }}
+                    </td>
+                    <td>{{ result.team.name }}</td>
+                    <td>{{ result.group_name|default:"--" }}</td>
+                    <td>{{ result.get_contestant_names }}</td>
+                    <td>{{ result.marks }}/100</td>
+                    <td>
+                        <span class="grade-badge 
+                            {% if result.grade == 'A' %}grade-a
+                            {% elif result.grade == 'B' %}grade-b
+                            {% elif result.grade == 'C' %}grade-c
+                            {% else %}grade-d{% endif %}">
+                            {{ result.grade }}
+                        </span>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No results available for this program.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if results %}
+        <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+            <h3>Grading System</h3>
+            <p><strong>A Grade:</strong> 80+ marks | <strong>B Grade:</strong> 70-79 marks | <strong>C Grade:</strong> 60-69 marks | <strong>D Grade:</strong> Below 60 marks</p>
+            <p><strong>Rank Points:</strong> 1st Place: 10 pts | 2nd Place: 6 pts | 3rd Place: 3 pts</p>
+            <p><strong>Grade Points:</strong> A: 10 pts | B: 6 pts | C: 3 pts</p>
+        </div>
+    {% endif %}
+</body>
+</html>

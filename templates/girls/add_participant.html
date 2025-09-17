@@ -1,0 +1,112 @@
+<!-- Modal -->
+<div class="modal fade" id="addParticipantModal" tabindex="-1" aria-labelledby="addParticipantModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="addParticipantModalLabel">Add Participants</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Nav Tabs -->
+        <ul class="nav nav-tabs" id="participantTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single" type="button" role="tab">Single Entry</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk" type="button" role="tab">Bulk Upload</button>
+          </li>
+        </ul>
+
+        <div class="tab-content mt-3">
+          <!-- Single Entry Tab -->
+          <div class="tab-pane fade show active" id="single" role="tabpanel">
+            <form method="POST" action="{% url 'add_participant' %}">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="single">
+
+              <div class="mb-3">
+                <label for="id_name" class="form-label">Name</label>
+                <input type="text" name="name" class="form-control" id="id_name" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="id_team" class="form-label">Team</label>
+                <select name="team" class="form-select" id="id_team" required {% if request.user.team %}disabled{% endif %}>
+                  {% for team in teams %}
+                    <option value="{{ team.id }}"
+                      {% if request.user.team and request.user.team.id == team.id %}
+                        selected
+                      {% endif %}>
+                      {{ team.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                {% if request.user.team %}
+                  <input type="hidden" name="team" value="{{ request.user.team.id }}">
+                {% endif %}
+              </div>
+
+              <div class="mb-3">
+                <label for="id_category" class="form-label">Category</label>
+                <select name="category" class="form-select" id="id_category" required>
+                  {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="text-end">
+                <button type="submit" class="btn btn-success">Save</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Bulk Upload Tab -->
+          <div class="tab-pane fade" id="bulk" role="tabpanel">
+            <form method="POST" action="{% url 'add_participant' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="bulk">
+
+              <div class="mb-3">
+                <label for="excel_file" class="form-label">Upload Excel File</label>
+                <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" class="form-control" required>
+              </div>
+
+              
+              <div class="text-end">
+                <button type="submit" class="btn btn-success">Upload</button>
+              </div>
+            </form>
+
+            <hr>
+            <h6 class="fw-bold">Excel Format Example:</h6>
+            <table class="table table-bordered small">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Team</th>
+                  <th>Category</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>John Doe</td>
+                  <td>Red Team</td>
+                  <td>Speech</td>
+                </tr>
+                <tr>
+                  <td>Jane Smith</td>
+                  <td>Blue Team</td>
+                  <td>Song</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

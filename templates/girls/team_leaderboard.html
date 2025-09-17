@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>🏆 Team Leaderboard</h3>
+        <div class="text-muted">
+            <small>Last updated: {% now "M d, Y H:i" %}</small>
+        </div>
+    </div>
+    
+    <!-- Overall Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h4>{{ total_teams }}</h4>
+                    <small>Total Teams</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h4>{{ total_points_distributed }}</h4>
+                    <small>Points Distributed</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h4>{{ total_participations_all }}</h4>
+                    <small>Total Participations</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-white">
+                <div class="card-body">
+                    <h4>{{ total_winners_all }}</h4>
+                    <small>Winners (Top 3)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top 3 Teams Highlight -->
+    {% if top_teams %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="mb-3">🎖️ Top Performers</h5>
+        </div>
+        {% for team_stat in top_teams %}
+        <div class="col-md-4">
+            <div class="card border-{% if team_stat.position == 1 %}warning{% elif team_stat.position == 2 %}secondary{% else %}danger{% endif %}">
+                <div class="card-header text-center bg-{% if team_stat.position == 1 %}warning{% elif team_stat.position == 2 %}secondary{% else %}danger{% endif %} text-white">
+                    <h5 class="mb-0">
+                        {% if team_stat.position == 1 %}🥇{% elif team_stat.position == 2 %}🥈{% else %}🥉{% endif %}
+                        {{ team_stat.team.name }}
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="text-{% if team_stat.position == 1 %}warning{% elif team_stat.position == 2 %}secondary{% else %}danger{% endif %}">
+                        {{ team_stat.total_points }} pts
+                    </h3>
+                    <p class="mb-2">
+                        <span class="badge bg-success">{{ team_stat.winners }} Winners</span>
+                        <span class="badge bg-info">{{ team_stat.marked_participations }} Entries</span>
+                    </p>
+                    <small class="text-muted">
+                        Rank: {{ team_stat.rank_points }}pts | Grade: {{ team_stat.grade_points }}pts
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Full Leaderboard Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">📊 Complete Leaderboard</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Team</th>
+                            <th>Total Points</th>
+                            <th>Winners</th>
+                            <th>Participations</th>
+                            <th>Points Breakdown</th>
+                            <th>Performance</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for team_stat in team_stats %}
+                        <tr {% if team_stat.position <= 3 %}class="table-warning"{% endif %}>
+                            <td>
+                                <span class="fw-bold">
+                                    {% if team_stat.position == 1 %}
+                                        🥇 #1
+                                    {% elif team_stat.position == 2 %}
+                                        🥈 #2
+                                    {% elif team_stat.position == 3 %}
+                                        🥉 #3
+                                    {% else %}
+                                        #{{ team_stat.position }}
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <strong>{{ team_stat.team.name }}</strong>
+                                {% if team_stat.team.description %}
+                                    <br><small class="text-muted">{{ team_stat.team.description }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary fs-6">{{ team_stat.total_points }} pts</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ team_stat.winners }}</span>
+                                <small class="text-muted d-block">
+                                    🥇{{ team_stat.first_place }} 🥈{{ team_stat.second_place }} 🥉{{ team_stat.third_place }}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ team_stat.marked_participations }}</span>
+                                <small class="text-muted d-block">/ {{ team_stat.total_participations }} total</small>
+                            </td>
+                            <td>
+                                <small>
+                                    <strong>Rank:</strong> {{ team_stat.rank_points }}pts<br>
+                                    <strong>Grade:</strong> {{ team_stat.grade_points }}pts
+                                </small>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% if team_stat.grade_a %}<span class="badge bg-success">A:{{ team_stat.grade_a }}</span>{% endif %}
+                                    {% if team_stat.grade_b %}<span class="badge bg-info">B:{{ team_stat.grade_b }}</span>{% endif %}
+                                    {% if team_stat.grade_c %}<span class="badge bg-warning">C:{{ team_stat.grade_c }}</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{% url 'team_detail' team_stat.team.id %}" class="btn btn-outline-primary btn-sm">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-trophy fa-2x mb-2"></i><br>
+                                No team data available yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Points Legend -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">🏅 Ranking Points</h6>
+                </div>
+                <div class="card-body">
+                    <small>
+                        🥇 <strong>1st Place:</strong> 6 points<br>
+                        🥈 <strong>2nd Place:</strong> 3 points<br>
+                        🥉 <strong>3rd Place:</strong> 1 point<br>
+                        <span class="text-muted">Other positions: 0 points</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">📚 Grade Points</h6>
+                </div>
+                <div class="card-body">
+                    <small>
+                        <span class="badge bg-success me-1">A</span> <strong>Grade A:</strong> 6 points (80+ marks)<br>
+                        <span class="badge bg-info me-1">B</span> <strong>Grade B:</strong> 3 points (60-79 marks)<br>
+                        <span class="badge bg-warning me-1">C</span> <strong>Grade C:</strong> 1 point (50-59 marks)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

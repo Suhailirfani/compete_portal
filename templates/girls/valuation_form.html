@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Valuation Form - {{ program.name }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 17px;
+            line-height: 1.4;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #ffc107;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .header .program-name {
+            color: #333;
+            font-size: 15px;
+            margin: 4px 0;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .info-section {
+            background-color: #f8f9fa;
+            padding: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ffc107;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        /* Fixed: More specific selectors and !important for font-size */
+        table th {
+            border: 1px solid #333;
+            padding: 3px 2px;
+            text-align: center;
+            background-color: #ffc107;
+            color: black;
+            font-weight: bold;
+            font-size: 20px !important; /* Change this value as needed */
+            word-wrap: break-word;
+        }
+        
+        table td {
+            border: 1px solid #333;
+            padding: 5px 3px;
+            text-align: center;
+        }
+        
+        /* Alternative: Use specific classes for different header sizes */
+        .header-large {
+            font-size: 16px !important;
+        }
+        
+        .header-medium {
+            font-size: 14px !important;
+        }
+        
+        .header-small {
+            font-size: 12px !important;
+        }
+        
+        .chest-no {
+            font-weight: bold;
+            background-color: #f8f9fa;
+            width: 80px;
+        }
+        
+        .participant-name {
+            text-align: left;
+            padding-left: 8px;
+            font-weight: 500;
+            width: 90px;
+        }
+        
+        .code-letter {
+            width: 80px;
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        
+        .marks-col {
+            width: 70px;
+            background-color: #f8f9fa;
+            height: 35px;
+            font-size: 19px;
+        }
+        
+        .total-col {
+            width: 80px;
+            font-weight: bold;
+            background-color: #d4edda;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #fdfdfd;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
+        }
+        
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-around;
+            border: 2px solid #333;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        
+        .signature-box {
+            width: 28%;
+            text-align: center;
+            border: 1px solid #333;
+            padding: 10px;
+            background-color: white;
+        }
+        
+        .signature-line {
+            border-bottom: 2px solid #333;
+            margin-top: 40px;
+            height: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VALUATION FORM</h1>
+    </div>
+
+    <div class="info-section">
+        <div>
+            <strong>Program:</strong> {{ program.name|upper }} |
+            <strong>Category:</strong> {{ program.category.name }} |
+            <strong>Date:</strong> {% now "F d, Y" %}
+            {% if is_team_user %} | <strong>Team:</strong> {{ team_name }}{% endif %}
+        </div>
+        <div>
+            <strong>Total Participants:</strong> {{ participants.count }}
+        </div>
+    </div>
+
+    {% if participants %}
+    <table>
+        <thead>
+            <tr>
+                <th class="header-medium" style="width: 5%;">S.No</th>
+                <th class="header-medium" style="width: 12%;">Chest No</th>
+                <th class="header-medium" style="width: 45%;">Name</th>
+                <th class="header-medium" style="width: 8%;">Code <br> Letter</th>
+                <th class="marks-col header-small">Mark 1</th>
+                <th class="marks-col header-small">Mark 2</th>
+                <th class="marks-col header-small">Mark 3</th>
+                <th class="marks-col header-small">Mark 4</th>
+                <th class="total-col header-small">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+            <tr>
+                <td><strong>{{ forloop.counter }}</strong></td>
+                <td class="chest-no">{{ participant.chest_no }}</td>
+                <td class="participant-name">{{ participant.name|upper }}</td>
+                <td class="code-letter"></td>
+                <td class="marks-col"></td>
+                <td class="marks-col"></td>
+                <td class="marks-col"></td>
+                <td class="marks-col"></td>
+                <td class="total-col"></td>
+            </tr>
+            {% endfor %}
+            
+            <!-- Add extra empty rows for additional entries -->
+            {% for i in "12345" %}
+            <tr>
+                <td><strong>{{ participants.count|add:forloop.counter }}</strong></td>
+                <td class="chest-no"></td>
+                <td class="participant-name"></td>
+                <td class="code-letter"></td>
+                <td class="marks-col"></td>
+                <td class="marks-col"></td>
+                <td class="marks-col"></td>
+                <td class="marks-col"></td>
+                <td class="total-col"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    
+    
+    {% else %}
+    <div class="info-section">
+        <strong>No participants registered for this program</strong>
+        {% if is_team_user %} from {{ team_name }} team{% endif %}.
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated on {% now 'F d, Y' %} &nbsp; | &nbsp; {{ program.name }} Valuation Form</p>
+        <p><strong>Note:</strong> This form must be submitted to the result compilation committee immediately after evaluation</p>
+    </div>
+</body>
+</html>

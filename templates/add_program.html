@@ -82,7 +82,11 @@
 
     <!-- Existing Programs -->
     <h4>Existing Programs</h4>
+    <a href="{% url 'all_green_room_lists' %}" class="btn btn-sm btn-success">Full GR list</a>
     <a href="{% url 'download_all_call_list' %}" class="btn btn-sm btn-warning">Download Full call list</a>
+    <a href="{% url 'download_all_valuation_forms_pdf' %}" class="btn btn-sm btn-warning">Download Full VF list</a>
+    <a href="{% url 'download_all_green_room_pdf' %}" class="btn btn-sm btn-warning">Download Full GR list</a>
+
     {% regroup programs by category as grouped_programs %}
 
     {% for group in grouped_programs %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>All Green Room Lists</h2>
+    {% if is_team_user %}
+        <p><strong>Team:</strong> {{ team_name }}</p>
+    {% endif %}
+
+    <!-- 🔍 Search box -->
+    <div class="mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search by Chest No, Name, Category, or Team">
+    </div>
+
+    {% for item in program_participants %}
+        <div class="card my-4 shadow-sm program-card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">{{ item.program.category.name }} &nbsp; {{ item.program.name }}</h5>
+            </div>
+            <div class="card-body">
+                {% if item.participants %}
+                    <table class="table table-bordered table-sm align-middle participant-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Chest No</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                {% if not is_team_user %}
+                                    <th>Team</th>
+                                {% endif %}
+                                <th>Signature</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in item.participants %}
+                                <tr>
+                                    <td>{{ p.chest_no }}</td>
+                                    <td>{{ p.name }}</td>
+                                    <td>{{ p.category.name }}</td>
+                                    {% if not is_team_user %}
+                                        <td>{{ p.team.name }}</td>
+                                    {% endif %}
+                                    <td></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No participants found.</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- 🔍 JavaScript filter -->
+<script>
+document.getElementById("searchInput").addEventListener("keyup", function () {
+    let filter = this.value.toLowerCase();
+    let tables = document.querySelectorAll(".participant-table tbody tr");
+
+    tables.forEach(function (row) {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+<!-- templates/competition/group_participation_list.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Group Participations</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f2f2f2; }
+        .btn { padding: 5px 10px; margin: 2px; text-decoration: none; border-radius: 3px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .status-complete { color: #28a745; font-weight: bold; }
+        .status-pending { color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Group Participations</h1>
+    
+    <a href="{% url 'create_group_participation' %}" class="btn btn-primary">Add New Group</a>
+    <a href="{% url 'team_leaderboard' %}" class="btn btn-info">View Leaderboard</a>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Program</th>
+                <th>Team</th>
+                <th>Contestants</th>
+                <th>Group Name</th>
+                <th>Marks</th>
+                <th>Grade</th>
+                <th>Rank</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in group_participations %}
+                <tr>
+                    <td>{{ group.program.name }}</td>
+                    <td>{{ group.team.name }}</td>
+                    <td>{{ group.get_contestant_names }}</td>
+                    <td>{{ group.group_name|default:"--" }}</td>
+                    <td>
+                        {% if group.marks %}
+                            {{ group.marks }}/100
+                        {% else %}
+                            --
+                        {% endif %}
+                    </td>
+                    <td>{{ group.grade|default:"--" }}</td>
+                    <td>{{ group.rank|default:"--" }}</td>
+                    <td>
+                        {% if group.marks %}
+                            <span class="status-complete">Complete</span>
+                        {% else %}
+                            <span class="status-pending">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not group.marks %}
+                            <a href="{% url 'add_group_marks' group.id %}" class="btn btn-success">Add Marks</a>
+                        {% else %}
+                            <a href="{% url 'add_group_marks' group.id %}" class="btn btn-info">Edit Marks</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="9">No group participations found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

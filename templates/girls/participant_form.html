@@ -1,0 +1,101 @@
+
+{% load static %}
+
+{% block content %}
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div class="container mt-5">
+    <h2 class="mb-4">{{ form_title }}</h2>
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+
+    <!-- Single Entry Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">Add Single Participant</h4>
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="id_name" class="form-label">Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-danger">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_team" class="form-label">Team</label>
+                    {{ form.team }}
+                    {% if form.team.errors %}
+                        <div class="text-danger">{{ form.team.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_category" class="form-label">Category</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <div class="text-danger">{{ form.category.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{% url 'participant_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Upload Section -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">Bulk Upload Participants (Excel)</h4>
+            <p class="text-muted">
+                Upload an Excel file with the following columns: 
+                <strong>name, team, category</strong>.
+            </p>
+
+            <!-- Example Table -->
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>name</th>
+                            <th>team</th>
+                            <th>category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>John Doe</td>
+                            <td>Team A</td>
+                            <td>Sports</td>
+                        </tr>
+                        <tr>
+                            <td>Jane Smith</td>
+                            <td>Team B</td>
+                            <td>Education</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Upload Form -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="excel_file" class="form-label">Choose Excel File</label>
+                    <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

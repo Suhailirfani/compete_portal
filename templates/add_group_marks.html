@@ -1,0 +1,60 @@
+<!-- templates/competition/add_group_marks.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Group Marks</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 200px; padding: 8px; }
+        button { background: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; margin-right: 10px; }
+        .btn-secondary { background: #6c757d; }
+        button:hover { opacity: 0.8; }
+        .group-info { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .messages { margin-bottom: 20px; }
+        .alert { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>Add/Edit Group Marks</h1>
+    
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <div class="group-info">
+        <h3>Group Details</h3>
+        <p><strong>Program:</strong> {{ group_participation.program.name }}</p>
+        <p><strong>Team:</strong> {{ group_participation.team.name }}</p>
+        <p><strong>Contestants:</strong> {{ group_participation.get_contestant_names }}</p>
+        {% if group_participation.group_name %}
+            <p><strong>Group Name:</strong> {{ group_participation.group_name }}</p>
+        {% endif %}
+        {% if group_participation.marks %}
+            <p><strong>Current Marks:</strong> {{ group_participation.marks }}/100</p>
+            <p><strong>Current Grade:</strong> {{ group_participation.grade }}</p>
+            <p><strong>Current Rank:</strong> {{ group_participation.rank }}</p>
+        {% endif %}
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="marks">Marks (out of 100):</label>
+            <input type="number" name="marks" id="marks" min="0" max="100" 
+                   value="{{ group_participation.marks|default:'' }}" required>
+        </div>
+        
+        <button type="submit">Save Marks</button>
+        <a href="{% url 'group_participation_list' %}" class="btn-secondary" style="padding: 10px 20px; text-decoration: none; color: white; border-radius: 4px;">Cancel</a>
+    </form>
+</body>
+</html>

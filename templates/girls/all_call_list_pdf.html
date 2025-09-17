@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>All Programs Call List</title>
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; }
+        h2 { text-align: center; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid black; padding: 5px; text-align: left; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    {% for entry in program_participants %}
+        <h2>{{ entry.program.name }}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Chest No</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    {% if not is_team_user %}
+                        <th>Team</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in entry.participants %}
+                    <tr>
+                        <td>{{ p.chest_no }}</td>
+                        <td>{{ p.name }}</td>
+                        <td>{{ p.category.name }}</td>
+                        {% if not is_team_user %}
+                            <td>{{ p.team.name }}</td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4">No participants registered.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+
+</body>
+</html>
